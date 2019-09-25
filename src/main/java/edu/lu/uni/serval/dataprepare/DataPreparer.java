@@ -36,6 +36,14 @@ public class DataPreparer {
         buggyProjectParentPath = path;
     }
     
+	public void reset(String path, String buggyProject) {
+		if (!path.endsWith("/")){
+            path += "/";
+        }
+        buggyProjectParentPath = path;
+        prepareData(buggyProject);
+	}
+    
     public void prepareData(String buggyProject){
 //		libPath.add(FromString.class.getProtectionDomain().getCodeSource().getLocation().getFile());
 //		libPath.add(EasyMock.class.getProtectionDomain().getCodeSource().getLocation().getFile());
@@ -43,14 +51,14 @@ public class DataPreparer {
 		
 		loadPaths(buggyProject);
 		
-		if (!checkProjectDirectories()){
-			validPaths = false;
-			return;
-		}
+//		if (!checkProjectDirectories()){
+//			validPaths = false;
+//			return;
+//		}
 		
-		loadTestCases();
-		
-		loadClassPaths();
+//		loadTestCases();
+//		
+//		loadClassPaths();
     }
 
 	private void loadPaths(String buggyProject) {
@@ -61,16 +69,16 @@ public class DataPreparer {
 		srcPath = projectDir + buggyProject + paths.get(2);
 		testSrcPath = projectDir + buggyProject + paths.get(3);
 
-		List<File> libPackages = new ArrayList<>();
-		if (new File(projectDir + buggyProject + "/lib/").exists()) {
-			libPackages.addAll(FileHelper.getAllFiles(projectDir + buggyProject + "/lib/", ".jar"));
-		}
-		if (new File(projectDir + buggyProject + "/build/lib/").exists()) {
-			libPackages.addAll(FileHelper.getAllFiles(projectDir + buggyProject + "/build/lib/", ".jar"));
-		}
-		for (File libPackage : libPackages) {
-			libPaths.add(libPackage.getAbsolutePath());
-		}
+//		List<File> libPackages = new ArrayList<>();
+//		if (new File(projectDir + buggyProject + "/lib/").exists()) {
+//			libPackages.addAll(FileHelper.getAllFiles(projectDir + buggyProject + "/lib/", ".jar"));
+//		}
+//		if (new File(projectDir + buggyProject + "/build/lib/").exists()) {
+//			libPackages.addAll(FileHelper.getAllFiles(projectDir + buggyProject + "/build/lib/", ".jar"));
+//		}
+//		for (File libPackage : libPackages) {
+//			libPaths.add(libPackage.getAbsolutePath());
+//		}
 	}
 	
 	private boolean checkProjectDirectories() {
@@ -123,6 +131,5 @@ public class DataPreparer {
 				classPaths = JavaLibrary.extendClassPathWith(lpath, classPaths);
 			}
 		}
-	}
-    
+	}    
 }

@@ -1,9 +1,12 @@
 package edu.lu.uni.serval.bug.fixer;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -97,6 +100,7 @@ public abstract class AbstractFixer implements IFixer {
 	}
 	
 	private void readPreviouslyFailedTestCases() {
+		print(Configuration.failedTestCasesFilePath + this.buggyProject + ".txt");
 		String[] failedTestCases = FileHelper.readFile(Configuration.failedTestCasesFilePath + this.buggyProject + ".txt").split("\n");
 		List<String> failedTestCasesList = new ArrayList<>();
 		List<String> failed = new ArrayList<>();
@@ -178,7 +182,7 @@ public abstract class AbstractFixer implements IFixer {
 		String suspiciousClassName = suspiciousCode.classPath;
 		int buggyLine = suspiciousCode.lineNumber;
 		
-		log.debug(suspiciousClassName + " ===" + buggyLine);
+//		log.debug(suspiciousClassName + " ===" + buggyLine);
 		String suspiciousJavaFile = suspiciousClassName.replace(".", "/") + ".java";
 		
 		suspiciousClassName = suspiciousJavaFile.substring(0, suspiciousJavaFile.length() - 5).replace("/", ".");
@@ -190,10 +194,18 @@ public abstract class AbstractFixer implements IFixer {
 		ITree suspCodeAstNode = scp.getSuspiciousCodeAstNode();
 		String suspCodeStr = scp.getSuspiciousCodeStr();
 		if (suspCodeAstNode == null || suspCodeStr == null) {
-			log.debug("Failed to identify the buggy statement in: " + suspiciousClassName + " --- " + buggyLine);
+//			log.debug("Failed to identify the buggy statement in: " + suspiciousClassName + " --- " + buggyLine);
+			writeStringToFile("./error.log", 
+					"Failed to identify the buggy statement in: " + suspiciousClassName + " --- " + buggyLine + "\n"
+					,true);
 			return null;
+		}else{
+//			log.debug("Succeed to identify the buggy statement in: " + suspiciousClassName + " --- " + buggyLine);
+			writeStringToFile("./error.log", 
+					"Succeed to identify the buggy statement in: " + suspiciousClassName + " --- " + buggyLine + "\n"
+					,true);
 		}
-		log.debug("Suspicious Code: \n" + suspCodeStr);
+//		log.debug("Suspicious Code: \n" + suspCodeStr);
 		
 		int startPos = suspCodeAstNode.getPos();
 		int endPos = startPos + suspCodeAstNode.getLength();
@@ -206,8 +218,9 @@ public abstract class AbstractFixer implements IFixer {
         	if (javaBackup.exists()) javaBackup.delete();
         	if (classBackup.exists()) classBackup.delete();
 			Files.copy(targetJavaFile.toPath(), javaBackup.toPath());
-			if (!targetClassFile.exists()) return null;
-			Files.copy(targetClassFile.toPath(), classBackup.toPath());
+			// bug fix: comment the two lines, otherwise will return null.
+//			if (!targetClassFile.exists()) return null;
+//			Files.copy(targetClassFile.toPath(), classBackup.toPath());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -354,7 +367,9 @@ public abstract class AbstractFixer implements IFixer {
 		return failedTeatCases;
 	}
 
-	private void addPatchCodeToFile(SuspCodeNode scn, Patch patch) {
+	// FIXME
+	//private void addPatchCodeToFile(SuspCodeNode scn, Patch patch) {
+	protected void addPatchCodeToFile(SuspCodeNode scn, Patch patch) {
 		String fixedCodeStr1 = patch.getFixedCodeStr1();
 		String fixedCodeStr2 = patch.getFixedCodeStr2();
 		int exactBuggyCodeStartPos = patch.getBuggyCodeStartPos();
@@ -396,6 +411,105 @@ public abstract class AbstractFixer implements IFixer {
         
         patch.setBuggyCodeStr(buggyCode);
         patch.setFixedCodeStr1(patchCode);
+	}
+	
+	/**
+	 * write {@code string} into file with mode as "not append"
+	 * 
+	 * @param filePath
+	 *            : path of file
+	 * @param string
+	 *            : message
+	 * @return
+	 */
+	public static boolean writeStringToFile(String filePath, String string) {
+		return writeStringToFile(filePath, string, false);
+	}
+
+	/**
+	 * write {@code string} to file with mode as "not append"
+	 * 
+	 * @param file
+	 *            : file of type {@code File}
+	 * @param string
+	 *            : message
+	 * @return
+	 */
+	public static boolean writeStringToFile(File file, String string) {
+		return writeStringToFile(file, string, false);
+	}
+
+	/**
+	 * write {@code string} into file with specific mode
+	 * 
+	 * @param filePath
+	 *            : file path
+	 * @param string
+	 *            : message
+	 * @param append
+	 *            : writing mode
+	 * @return
+	 */
+	public static boolean writeStringToFile(String filePath, String string, boolean append) {
+		if (filePath == null) {
+			print("#writeStringToFile Illegal file path:" + filePath);
+			return false;
+		}
+		File file = new File(filePath);		
+		return writeStringToFile(file, string, append);
+	}
+
+	/**
+	 * write {@code string} into file with specific mode
+	 * 
+	 * @param file
+	 *            : file of type {@code File}
+	 * @param string
+	 *            : message
+	 * @param append
+	 *            : writing mode
+	 * @return
+	 */
+	public static boolean writeStringToFile(File file, String string, boolean append) {
+		if (file == null || string == null) {
+			print("#writeStringToFile Illegal arguments : null.");
+			return false;
+		}
+		if (!file.exists()) {
+			try {
+				file.getParentFile().mkdirs();
+				file.createNewFile();
+			} catch (IOException e) {
+				print("#writeStringToFile Create new file failed : " + file.getAbsolutePath());
+				return false;
+			}
+		}
+		BufferedWriter bufferedWriter = null;
+		try {
+			bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file, append), "UTF-8"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		try {
+			bufferedWriter.write(string);
+			bufferedWriter.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (bufferedWriter != null) {
+				try {
+					bufferedWriter.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return true;
+	}
+	
+	public static void print(String str){
+		System.out.println(str);
 	}
 	
 	class SuspCodeNode {

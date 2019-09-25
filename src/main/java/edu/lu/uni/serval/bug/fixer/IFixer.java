@@ -1,5 +1,7 @@
 package edu.lu.uni.serval.bug.fixer;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.List;
 
 import edu.lu.uni.serval.bug.fixer.AbstractFixer.SuspCodeNode;
@@ -21,6 +23,6 @@ public interface IFixer {
 	public void fixProcess();
 	
 	//FIXME
-	public void matchProcess();
+	public void matchLines() throws FileNotFoundException, IOException;
 	
 }

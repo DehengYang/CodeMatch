@@ -1,6 +1,7 @@
 package edu.lu.uni.serval.utils;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.jdt.core.dom.CompilationUnit;
@@ -8,7 +9,9 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import edu.lu.uni.serval.AST.ASTGenerator;
 import edu.lu.uni.serval.AST.ASTGenerator.TokenType;
 import edu.lu.uni.serval.jdt.tree.ITree;
+import edu.lu.uni.serval.par.templates.FixTemplate;
 import edu.lu.uni.serval.parser.JavaFileParser;
+import edu.lu.uni.serval.tbar.utils.Checker;
 
 /**
  * Parse the suspicious code into an AST.
@@ -24,6 +27,21 @@ public class SuspiciousCodeParser {
 	private String suspiciousCodeStr = null;
 	
 	private BuggyMethod buggyMethod = null;
+	
+	// dale
+	private List<ITree>clazzNameList = new ArrayList<ITree>();
+	
+	public List<ITree> getClazzNameList(){
+		return this.clazzNameList;
+	}
+	public CompilationUnit getUnit(){
+		return unit;
+	}
+	
+	public void parseJavaFile(File javaFile) {
+		this.javaFile = javaFile;
+		unit = new JavaFileParser().new MyUnit().createCompilationUnit(javaFile);
+	}
 	
 	public void parseSuspiciousCode(File javaFile, int suspLineNum) {
 		this.javaFile = javaFile;
@@ -43,7 +61,7 @@ public class SuspiciousCodeParser {
 		List<ITree> children = tree.getChildren();
 		
 		for (ITree child : children) {
-			System.out.println("child in identifySuspiciousCodeAst: " + child.toString());
+//			System.out.println("child in identifySuspiciousCodeAst: " + child.toString());
 			int startPosition = child.getPos();
 			int endPosition = startPosition + child.getLength();
 			int startLine = this.unit.getLineNumber(startPosition);
@@ -51,13 +69,18 @@ public class SuspiciousCodeParser {
 			if (endLine == -1) endLine = this.unit.getLineNumber(endPosition - 1);
 			if (startLine <= suspLineNum && suspLineNum <= endLine) {
 				if (startLine == suspLineNum || endLine == suspLineNum) {
-					if (!isRequiredAstNode(child)) {
-						child = traverseParentNode(child);
-						if (child == null) break;
+					if (Checker.isBlock(child.getType())) {
+						identifySuspiciousCodeAst(child, suspLineNum);
+						continue;
+					}else{
+						if (!isRequiredAstNode(child)) {
+							child = traverseParentNode(child);
+							if (child == null) break;
+						}
+						this.suspiciousCodeAstNode = child;
+						this.suspiciousCodeStr = readSuspiciousCode();
+//						break;// FIXME: one code line might contain several statements.
 					}
-					this.suspiciousCodeAstNode = child;
-					this.suspiciousCodeStr = readSuspiciousCode();
-					break;// FIXME: one code line might contain several statements.
 				} else {
 					identifySuspiciousCodeAst(child, suspLineNum);
 				}
@@ -68,18 +91,51 @@ public class SuspiciousCodeParser {
 		}
 	}
 	
+	// dale from SimFix
+	public static boolean isClass(String name){
+		if(name == null) return false;
+		
+		// exclude non primitive types
+		if (name.equals("String") ||  name.equals("Integer") ||  name.equals("List")
+				||  name.equals("Array") ||  name.equals("Double") ||  name.equals("Float")){
+			return false;
+		}
+		
+		if(!name.matches("[a-zA-Z]+")){
+//			System.out.println("class name judge in isClass (return false): " + name);
+			return false;
+		}
+		
+		return Character.isUpperCase(name.charAt(0)) && !name.toUpperCase().equals(name);
+	}
+	
 	// dale
-	public ITree findSimpleName(ITree tree) {
+	public void findClazzInstance(ITree tree, FixTemplate ft) {
 		
 		List<ITree> children = tree.getChildren();
 		
 		for (ITree child : children) {
-			System.out.println("child in findSimpleName: " + child.toString());
-			if (Checker.isSimpleName(child.getType()) && child.toString().equals("42@@copy")){
-				System.out.println("find copy child");
-				return child;
+//			System.out.println("child in findSimpleName: " + child.toString());
+//					+ " type: " + child.getType());
+			//if (Checker.isSimpleName(child.getType()) && child.toString().equals("42@@copy")){
+			
+			// 
+//			if(ft.allVarNamesMap.containsKey(child))
+			String label = child.getLabel();
+			// sometimes lalel may be "Name:area"
+			if (label.contains(":")){
+				label = label.split(":")[1];
+			}
+			String type = "null";
+			if(ft.varTypesMap.containsKey(label)){
+				type = ft.varTypesMap.get(label);
+			}
+			// check if class name
+			if (Checker.isSimpleName(child.getType()) &&  isClass(type)) {
+//				System.out.println("find class instance: " + child.toString());
+				this.clazzNameList.add(child);
 			}else{
-				return findSimpleName(child);
+				findClazzInstance(child,ft);
 			}
 			
 //			int startPosition = child.getPos();
@@ -104,7 +160,7 @@ public class SuspiciousCodeParser {
 //				break;
 //			}
 		}
-		return null;
+//		return null;
 	}
 
 	private void identifySuspiciousMethodAst(ITree tree, int buggyLine) {

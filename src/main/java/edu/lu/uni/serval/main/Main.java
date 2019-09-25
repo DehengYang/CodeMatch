@@ -1,6 +1,8 @@
 package edu.lu.uni.serval.main;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
 import edu.lu.uni.serval.bug.fixer.AbstractFixer;
 import edu.lu.uni.serval.bug.fixer.ParFixer;
@@ -15,8 +17,8 @@ import edu.lu.uni.serval.utils.SuspiciousPosition;
  */
 public class Main {
 	
-	public static void main(String[] args) {
-		if (args.length != 6) {
+	public static void main(String[] args) throws FileNotFoundException, IOException {
+		if (args.length != 7) {
 			System.out.println("Arguments: <Failed_Test_Cases_File_Path> <Suspicious_Code_Positions_File_Path> <Buggy_Project_Path> <defects4j_Path> <Project_Name> <FL_Metric>");
 			System.exit(0);
 		}
@@ -29,7 +31,11 @@ public class Main {
 		String defects4jPath = args[3]; // "~/environment/defects4j"  or "~/environment/defects4j/framework/bin/"
 		String projectName = args[4]; // "Lang_24"
 		Configuration.faultLocalizationMetric = args[5]; // Ochiai
+		Configuration.linesFilePath = args[6]; ///home/dale/eclipse-projs/codesearch/search-log/chart/3
 		Configuration.outputPath += "FL/";
+		
+		Configuration.proj = projectName.split("_")[0];
+		Configuration.id = projectName.split("_")[1];
 		System.out.println(projectName);
 		
 		// for parsing line node
@@ -37,12 +43,10 @@ public class Main {
 //		int lineNo = 
 //		SuspiciousPosition suspiciousCode = new SuspiciousPosition();
 		
-		
-		
 		fixBug(buggyProjectsPath, defects4jPath, projectName);
 	}
 
-	public static void fixBug(String buggyProjectsPath, String defects4jPath, String buggyProjectName) {
+	public static void fixBug(String buggyProjectsPath, String defects4jPath, String buggyProjectName) throws FileNotFoundException, IOException {
 		String suspiciousFileStr = Configuration.suspPositionsFilePath;
 		
 		String dataType = "PAR";
@@ -68,7 +72,7 @@ public class Main {
 		
 		//FIXME
 //		fixer.fixProcess();
-		fixer.matchProcess();
+		fixer.matchLines();
 		
 		int fixedStatus = fixer.fixedStatus;
 		switch (fixedStatus) {
