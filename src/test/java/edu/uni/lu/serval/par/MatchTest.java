@@ -2,11 +2,13 @@ package edu.uni.lu.serval.par;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.logging.Logger;
 
 import org.junit.Test;
 
 import edu.lu.uni.serval.main.Main;
+import edu.lu.uni.serval.utils.ShellUtils;
 import junit.framework.TestCase;
 
 public class MatchTest extends TestCase{
@@ -116,8 +118,24 @@ public class MatchTest extends TestCase{
 	@Test
 	public void test_chart4() throws FileNotFoundException, IOException{
 		String proj = "Chart";
-    	String id = "1";
+    	String id = "11";
     	String projId = proj + "_" + id;
+    	
+    	String repoBuggy = "/home/dale/d4j/";
+		String repoFixed = "/home/dale/d4j/fixed_bugs_dir/";
+		String[] cmd = {"/bin/sh","-c", "cd " + repoBuggy 
+				+ " && " + "/bin/bash single-download.sh "
+				+ proj + " " + id + " 1"};
+		ShellUtils.shellRun2(cmd);
+		
+		String[] cmd2 = {"/bin/sh","-c", "cd " + repoFixed 
+				+ " && " + "/bin/bash  fixed_single_download.sh "
+				+ proj + " " + id + " 1"};
+		ShellUtils.shellRun2(cmd2);
+//		ShellUtils.shellRun2("cd " + repoFixed 
+//				+ " && " + "/bin/bash fixed_single_download.sh "
+//				+ proj + " " + id + " 1");
+    	
 		String[] args = new String[]{
 				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/",
 				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/",
@@ -134,5 +152,4 @@ public class MatchTest extends TestCase{
 		Main.main(args);
 		// the result can be found in /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/kPAR/match-log/Chart/3/org.jfree.chart.axis.DateAxis_767-778
 	}
-	
 }

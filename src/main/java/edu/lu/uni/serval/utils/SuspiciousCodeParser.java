@@ -29,11 +29,16 @@ public class SuspiciousCodeParser {
 	private BuggyMethod buggyMethod = null;
 	
 	// dale
-	private List<ITree>clazzNameList = new ArrayList<ITree>();
-	
-	public List<ITree> getClazzNameList(){
-		return this.clazzNameList;
+//	private List<ITree>clazzNameList = new ArrayList<ITree>();
+	// find only one clazzInstance each time
+	private ITree clazzInstance = null;
+	public ITree getClazzInstance(){
+		return this.clazzInstance;
 	}
+	public void resetClazzInstance(){
+		this.clazzInstance = null;
+	}
+	
 	public CompilationUnit getUnit(){
 		return unit;
 	}
@@ -41,6 +46,34 @@ public class SuspiciousCodeParser {
 	public void parseJavaFile(File javaFile) {
 		this.javaFile = javaFile;
 		unit = new JavaFileParser().new MyUnit().createCompilationUnit(javaFile);
+	}
+	
+	public String getSuperClazz(File javaFile){
+		unit = new JavaFileParser().new MyUnit().createCompilationUnit(javaFile);
+		ITree rootTree = new ASTGenerator().generateTreeForJavaFile(javaFile, TokenType.EXP_JDT);
+		
+		for (ITree child : rootTree.getChildren()){
+			if(child.getLabel().contains("ClassName:")){
+				String[] clazzStrList = child.toString().split(",");
+				String superClazz = null;
+				String clazz = null;
+				for (String clazzStr : clazzStrList){
+					if(clazzStr.contains("@@SuperClass:")){
+						superClazz = clazzStr.split(":")[1];
+					}
+					if(clazzStr.contains("ClassName:")){
+						clazz = clazzStr.split(":")[1];
+					}
+				}
+				
+				if(superClazz != null){
+					return superClazz;
+				}else{
+					return clazz;
+				}
+			}
+		}
+		return null;
 	}
 	
 	public void parseSuspiciousCode(File javaFile, int suspLineNum) {
@@ -117,9 +150,6 @@ public class SuspiciousCodeParser {
 		for (ITree child : children) {
 //			System.out.println("child in findSimpleName: " + child.toString());
 //					+ " type: " + child.getType());
-			//if (Checker.isSimpleName(child.getType()) && child.toString().equals("42@@copy")){
-			
-			// 
 //			if(ft.allVarNamesMap.containsKey(child))
 			String label = child.getLabel();
 			// sometimes lalel may be "Name:area"
@@ -133,34 +163,13 @@ public class SuspiciousCodeParser {
 			// check if class name
 			if (Checker.isSimpleName(child.getType()) &&  isClass(type)) {
 //				System.out.println("find class instance: " + child.toString());
-				this.clazzNameList.add(child);
+//				this.clazzNameList.add(child);
+				clazzInstance = child;
+				break;
 			}else{
 				findClazzInstance(child,ft);
 			}
-			
-//			int startPosition = child.getPos();
-//			int endPosition = startPosition + child.getLength();
-//			int startLine = this.unit.getLineNumber(startPosition);
-//			int endLine = this.unit.getLineNumber(endPosition);
-//			if (endLine == -1) endLine = this.unit.getLineNumber(endPosition - 1);
-//			if (startLine <= suspLineNum && suspLineNum <= endLine) {
-//				if (startLine == suspLineNum || endLine == suspLineNum) {
-//					if (!isRequiredAstNode(child)) {
-//						child = traverseParentNode(child);
-//						if (child == null) break;
-//					}
-//					this.suspiciousCodeAstNode = child;
-//					this.suspiciousCodeStr = readSuspiciousCode();
-//					break;// FIXME: one code line might contain several statements.
-//				} else {
-//					identifySuspiciousCodeAst(child, suspLineNum);
-//				}
-//				break;
-//			} else if (startLine > suspLineNum) {
-//				break;
-//			}
 		}
-//		return null;
 	}
 
 	private void identifySuspiciousMethodAst(ITree tree, int buggyLine) {

@@ -20,6 +20,19 @@ import edu.lu.uni.serval.utils.FileHelper;
 
 public class ShellUtils {
 
+	// dale: simple run
+	public static String shellRun2(String cmd) throws IOException {
+        Process process= Runtime.getRuntime().exec(cmd);
+        String results = ShellUtils.getShellOut(process);
+        return results;
+	}
+	// dale: simple run
+	public static String shellRun2(String[] cmd) throws IOException {
+		Process process= Runtime.getRuntime().exec(cmd);
+		String results = ShellUtils.getShellOut(process);
+		return results;
+	}
+	
 	public static String shellRunForFileRead(List<String> asList, String buggyProject) throws IOException {
 		String fileName;
         String cmd;

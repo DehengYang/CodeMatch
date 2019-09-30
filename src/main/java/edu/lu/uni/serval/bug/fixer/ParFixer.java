@@ -1,13 +1,10 @@
 package edu.lu.uni.serval.bug.fixer;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.lu.uni.serval.config.Configuration;
-import edu.lu.uni.serval.dataprepare.DataPreparer;
 import edu.lu.uni.serval.entity.Pair;
 import edu.lu.uni.serval.jdt.tree.ITree;
 import edu.lu.uni.serval.par.templates.FixTemplate;
@@ -37,7 +33,6 @@ import edu.lu.uni.serval.par.templates.fix.RangeChecker;
 import edu.lu.uni.serval.tbar.context.ContextReader;
 import edu.lu.uni.serval.utils.Checker;
 import edu.lu.uni.serval.utils.FileHelper;
-import edu.lu.uni.serval.utils.PathUtils;
 import edu.lu.uni.serval.utils.ShellUtils;
 import edu.lu.uni.serval.utils.SuspiciousPosition;
 import edu.lu.uni.serval.utils.SuspiciousCodeParser;
@@ -77,9 +72,16 @@ public class ParFixer extends AbstractFixer {
 	private int patchEndLineNo = 0;
 	// bug fix: I forget to set patchClassPath
 	private String patchClassPath = "";
+	// code improve
+	private String patchMethod = null;
+	private String matchMethod = null;
+	
+	// code improve: only save the same fixCode once. (do not repeat)
+	private int fixCodeSaveFlag = 0;
 	
 	// code improve:
-	private int fixCodeSaveFlag = 0;
+	private File bkupFolder;
+	private int parsedLinesCnt = 0;
 	
 	public ParFixer(String path, String projectName, int bugId, String defects4jPath) {
 		super(path, projectName, bugId, defects4jPath);
@@ -87,6 +89,24 @@ public class ParFixer extends AbstractFixer {
 	
 	public ParFixer(String path, String metric, String projectName, int bugId, String defects4jPath) {
 		super(path, metric, projectName, bugId, defects4jPath);
+	}
+	
+	public void initAll(){
+		patchStartLineNo = 0;
+		patchEndLineNo = 0;
+		
+		patchClassPath = "";
+		patchMethod = null;
+		matchMethod = null;
+		
+		fixCodeSaveFlag = 0;
+		
+		// bug fix: clear again!
+		patchLinesMap.clear();
+		// code improve: output to a matched file for each fix code.
+		matchedLogPath = null;
+		// bug fix: logPath should not be null. When fixing, try to change matchLinesFromEachFile method
+		logPath = null;
 	}
 	
 	public void matchLines() throws IOException{
@@ -111,17 +131,8 @@ public class ParFixer extends AbstractFixer {
 					int startLine = Integer.parseInt(linesTmp[0]);
 					int endLine = Integer.parseInt(linesTmp[1]);
 					
-					// bug fix: clear again!
-					patchLinesMap.clear();
-					// code improve: output to a matched file for each fix code.
-					matchedLogPath = null;
-					
-					// bug fix: logPath should not be null. When fixing, try to change matchLinesFromEachFile method
-					 logPath = null;
-//					logPath = "./match-log/" + Configuration.proj + '/' + Configuration.id + '/' 
-//							+ classPath + "_" + startLine + "-" + endLine; 
-					
-					fixCodeSaveFlag = 0;
+					// init all relevant
+					initAll();
 					for (int line = startLine; line <= endLine; line ++){
 						patchLinesMap.put(line, "");
 					}
@@ -214,6 +225,7 @@ public class ParFixer extends AbstractFixer {
 					continue;
 				}
 				
+				// TODO:This can be actually deleted. 
 				if (logPath == null){
 					logPath = "./match-log/" + Configuration.proj + '/' + Configuration.id + '/' 
 						+ classPath + "_" + this.startLineNo + "-" + this.endLineNo; 
@@ -231,9 +243,6 @@ public class ParFixer extends AbstractFixer {
 			}
 		}
 		br.close();
-//		SuspiciousPosition sc = new SuspiciousPosition();
-//		sc.classPath = "org.jfree.data.time.TimeSeries";
-//		sc.lineNumber = 1057;
 	}
 	
 	public void runMatchSingleLine(SuspiciousPosition sc, String classPath) throws IOException{
@@ -371,8 +380,13 @@ public class ParFixer extends AbstractFixer {
 
 				fixCodeSaveFlag = 1;
 			}
-			
-			writeStringToFile(matchedLogPath, "---fix ingredient--- "
+			String str = "";
+			if(patchMethod.equals(matchMethod)){
+				str = "---fix ingredient---(SameMethod) ";
+			}else{
+				str = "---fix ingredient--- ";
+			}
+			writeStringToFile(matchedLogPath, str
 					+ classPath + " <" + this.startLineNo + ", " + this.endLineNo + ">\n", true);
 			for (String match : sim_code){
 				// fix bug: add trim() to wipe out "\n"
@@ -397,36 +411,42 @@ public class ParFixer extends AbstractFixer {
 		}
 		return filted_list;
 	}
+	
+	public void backup(String flag) throws IOException{
+		if (flag.equals("backup")){
+			// first backup
+			// without "/"
+			String srcPath = null;
+			if (dp.srcPath.endsWith("/")){
+				srcPath = dp.srcPath.substring(0, dp.srcPath.length() - 1);
+			}else{
+				srcPath = dp.srcPath;
+			}
+			// this.bkupFolder
+			bkupFolder = new File(srcPath + "-ori");
+			if (bkupFolder.exists() && bkupFolder.isDirectory()){
+				// already have a backup folder
+			}else{
+				FileUtils.copyDirectory(new File(dp.srcPath), bkupFolder);
+			}
+		}else{
+			// restore
+			FileUtils.deleteDirectory(new File(dp.srcPath));
+			FileUtils.copyDirectory(bkupFolder, new File(dp.srcPath));
+		}
+	}
 
 	public Pair<String, String> matchSingleLine(SuspiciousPosition sc, String flag) throws IOException {
+		// count 
+		parsedLinesCnt ++;
+		print("Parsed Lines Count: " + parsedLinesCnt 
+				+ " : " + sc.classPath + ":" + sc.lineNumber);
 		
-		// a specified line
-//		SuspiciousPosition sc = new SuspiciousPosition();
-//		sc.classPath = "org.jfree.data.time.TimeSeries";
-//		sc.lineNumber = 1057;
-		
-		// first re-set dp
-		// /home/dale/d4j/fixed_bugs_dir/Chart/ Chart_3
-		// fullPath = /home/dale/d4j/fixed_bugs_dir/Chart/Chart_3/source/org/jfree/data/time/TimeSeries
+		// reset dp for each line.
 		this.dp.reset(this.dpPath, this.projId);
 		
-		
-		// first backup
-		// without "/"
-		String srcPath = null;
-		if (dp.srcPath.endsWith("/")){
-			srcPath = dp.srcPath.substring(0, dp.srcPath.length() - 1);
-		}else{
-			srcPath = dp.srcPath;
-		}
-		File bkupFolder = new File(srcPath + "-ori");
-		if (bkupFolder.exists() && bkupFolder.isDirectory()){
-			// already have a backup folder
-//			print("Already have a backup folder.");
-		}else{
-			FileUtils.copyDirectory(new File(dp.srcPath), bkupFolder);
-		}
-		
+		//backup
+		backup("backup");
 		
 		// get the AST node for the line
 		SuspCodeNode scn1 = parseSuspiciousCode(sc);
@@ -443,32 +463,15 @@ public class ParFixer extends AbstractFixer {
 			if (results.trim().equals("")){
 				results = "empty line";
 			}
-			
-			return new Pair<String, String>(results, results);
-			
-//			return new Pair<String, String>("null_ast", "null_ast");
+			return new Pair<String, String>(results, results);		
 		}
 		
 		ITree scan = scn1.suspCodeAstNode; 
 		
-		// First: get class and super class (if exists) name 
-		ITree parent = scan;
-		// TODO: to test whether 1056 TimeSeries copy = (TimeSeries) super.clone(); is typeDecl
-		while(!Checker.isTypeDeclaration(parent.getType()) ){
-			parent = parent.getParent();
-		}
-		// print(parent.toString());
-		String[] clazzStrList = parent.toString().split(",");
-		String superClazz = null;
-		String clazz = null;
-		for (String clazzStr : clazzStrList){
-			if(clazzStr.contains("@@SuperClass:")){
-				superClazz = clazzStr.split(":")[1];
-			}
-			if(clazzStr.contains("ClassName:")){
-				clazz = clazzStr.split(":")[1];
-			}
-		}
+		// get clazz and super clazz
+		Pair<String, String> clazzAndSuper = getClazzSuperMethod(scan, flag);
+		String clazz = clazzAndSuper.getFirst();
+		String superClazz = clazzAndSuper.getSecond();
 		
 		// first initialze a FixTemplate
 		FixTemplate ft = null;
@@ -479,7 +482,6 @@ public class ParFixer extends AbstractFixer {
 		else ft.setSourceCodePath(dp.srcPath, scn1.javaBackup);
 		
 		// get all variables
-//		List<String> vars = new ArrayList<>();
 		List<ITree> suspVars = new ArrayList<>();
 		// FIXME: identifySuspiciousVariables method should be modified for my purpose 
 		ContextReader.identifySuspiciousVariables(scan, suspVars, new ArrayList<String>());
@@ -490,10 +492,8 @@ public class ParFixer extends AbstractFixer {
 		String suspiciousJavaFile = sc.classPath.replace(".", "/") + ".java";
 		String filePath = this.dp.srcPath + suspiciousJavaFile;
 		scp.parseJavaFile(new File(filePath));
-		int startPosition = scan.getPos();
-		int endPosition = startPosition + scan.getLength();
-		int currentStartLineNo = scp.getUnit().getLineNumber(startPosition);
-		int currentEndLineNo=  scp.getUnit().getLineNumber(endPosition);
+		int currentStartLineNo = scp.getUnit().getLineNumber(scan.getPos());
+		int currentEndLineNo=  scp.getUnit().getLineNumber(scan.getPos()+ scan.getLength());
 		
 		// exclude repeated ast match
 		if(this.matchedStartLineNo <= currentStartLineNo && 
@@ -514,26 +514,21 @@ public class ParFixer extends AbstractFixer {
 		this.matchedEndLineNo = currentEndLineNo;
 		
 		
-		// find class instances 
+		// find class instances
 		scp.findClazzInstance(scan, ft);
-		List<ITree> clazzInstances = scp.getClazzNameList();
+		ITree clazzIns = scp.getClazzInstance();
 		
 		// for each class instance, replace it with its class name
 		String before_match = scn1.suspCodeStr;
 		int whileCnt = 0;
-		while(!clazzInstances.isEmpty() && whileCnt <= 30){
-//		for (ITree clazzIns : clazzInstances){
-			// clazzIns start and end pos
+		while(clazzIns != null && whileCnt <= 30){
 			whileCnt ++;
 			
-			ITree clazzIns = clazzInstances.get(0);
 			int suspExpStartPos = clazzIns.getPos();
 			int suspExpEndPos = suspExpStartPos + clazzIns.getLength();
-			
 			// specified line start and end pos
 			int suspCodeStartPos = scan.getPos();
 			int suspCodeEndPos = suspCodeStartPos + scan.getLength();
-			
 			// part 1 and 2
 			String suspCodePart1 = ft.getSubSuspiciouCodeStr(suspCodeStartPos, suspExpStartPos);
 			String suspCodePart2 = ft.getSubSuspiciouCodeStr(suspExpEndPos,suspCodeEndPos);
@@ -548,12 +543,22 @@ public class ParFixer extends AbstractFixer {
 			String replace = "null";
 			if(ft.varTypesMap.containsKey(label)){
 				replace = ft.varTypesMap.get(label);
-				if (replace.equals(clazz)){
-					replace = clazz;
-					if (superClazz != null){
-						replace = superClazz;
-					}
+				
+				// if is same as current class, then  
+				if (replace.equals(clazz) && superClazz != null){
+					replace = superClazz;
 				}
+				
+				// if not, parse the file and get the class.
+//				String[] cmd2 = {"/bin/sh","-c", " find " 
+//						+ dp.srcPath + " -name " + replace + ".java"
+//						};
+//				// e.g., find /home/dale/d4j/Chart/Chart_1/source/ -name AbstractCategoryItemRenderer.java
+//				String result = ShellUtils.shellRun2(cmd2);
+//				String otherClazz = scp.getSuperClazz(new File(result.trim()));
+//				if(otherClazz != null){
+//					replace = otherClazz;
+//				}
 			}
 			
 			// FIXME: multi replace
@@ -582,11 +587,10 @@ public class ParFixer extends AbstractFixer {
 			suspiciousJavaFile = sc.classPath.replace(".", "/") + ".java";
 			filePath = this.dp.srcPath + suspiciousJavaFile;
 			scp.parseJavaFile(new File(filePath));
+			// bug Fix:
+			scp.resetClazzInstance();
 			scp.findClazzInstance(scan, ft);
-			clazzInstances.clear();
-			clazzInstances = scp.getClazzNameList();
-			
-//			String after_match = suspCodePart1  + replace + suspCodePart2;
+			clazzIns = scp.getClazzInstance();
 //			ft.generatePatch(suspCodePart1  + replace + suspCodePart2);
 		}
 		// replace this.
@@ -604,13 +608,7 @@ public class ParFixer extends AbstractFixer {
 		}
 		
 		// restore
-		// without "/"
-//		if (dp.srcPath.endsWith("/")){
-//			dp.srcPath = dp.srcPath.substring(0, dp.srcPath.length() - 1);
-//		}
-//		bkupFolder = new File(dp.srcPath + "-ori");
-		FileUtils.deleteDirectory(new File(dp.srcPath));
-		FileUtils.copyDirectory(bkupFolder, new File(dp.srcPath));
+		backup("restore");
 		
 		// set map values
 		String[] lines = scn1.suspCodeStr.split("\n");
@@ -632,15 +630,7 @@ public class ParFixer extends AbstractFixer {
 				cnt ++;
 			}
 		}
-		
-		
 		return new Pair<String, String>(before_match, scn1.suspCodeStr);
-		// assignment
-//		int type = scan.getType();
-//		if (Checker.isAssignment(type) || Checker.isExpressionStatement(type)){
-//		for (ITree itree : scan.getChildren()){
-//			print("itree in scan: " + itree.toTreeString());
-//		}	
 	}
 	
 //	private void resetDP() {
@@ -649,6 +639,44 @@ public class ParFixer extends AbstractFixer {
 //		dp.prepareData(buggyProject);
 //		
 //	}
+
+	// get class name, super class, and method name string
+	private Pair<String, String> getClazzSuperMethod(ITree scan, String flag) {
+		// First: get class and super class (if exists) name 
+		ITree parent = scan;
+		// TODO: to test whether 1056 TimeSeries copy = (TimeSeries) super.clone(); is typeDecl
+		while(!Checker.isTypeDeclaration(parent.getType()) ){
+			if (Checker.isMethodDeclaration(parent.getType())){
+//				String[] labels = parent.getLabel().split(",");
+				// start to analyze method
+				// e.g., public, @@LegendItemCollection, MethodName:getLegendItems, @@Argus:null
+//				String returnVar = labels[1].trim();
+//				String methodName = lables[2].trim();
+				// Code improve: to do this in a simpler way!
+				if(flag == "fixed_code"){
+					this.patchMethod = parent.getLabel();
+				}else{
+					this.matchMethod = parent.getLabel();
+				}
+			}
+			
+			parent = parent.getParent();
+			
+		}
+		// print(parent.toString());
+		String[] clazzStrList = parent.toString().split(",");
+		String superClazz = null;
+		String clazz = null;
+		for (String clazzStr : clazzStrList){
+			if(clazzStr.contains("@@SuperClass:")){
+				superClazz = clazzStr.split(":")[1];
+			}
+			if(clazzStr.contains("ClassName:")){
+				clazz = clazzStr.split(":")[1];
+			}
+		}
+		return new Pair<String, String>(clazz, superClazz);
+	}
 
 	class SuspNullExpStr implements Comparable<SuspNullExpStr> {
 		public String expStr;
@@ -766,12 +794,12 @@ public class ParFixer extends AbstractFixer {
 		SuspCodeNode scn1 = parseSuspiciousCode(sc);
 		ITree scan = scn1.suspCodeAstNode;
 		// assignment
-		int type = scan.getType();
+//		int type = scan.getType();
 //		if (Checker.isAssignment(type) || Checker.isExpressionStatement(type)){
 		for (ITree itree : scan.getChildren()){
 			print("itree in scan: " + itree.toTreeString());
 		}
-		SuspiciousCodeParser scp = new SuspiciousCodeParser();
+//		SuspiciousCodeParser scp = new SuspiciousCodeParser();
 		ITree simpleName = null;//scp.findSimpleName(scan);	
 		int suspExpStartPos = simpleName.getPos();
 		int suspExpEndPos = suspExpStartPos + simpleName.getLength();
