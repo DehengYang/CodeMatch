@@ -118,7 +118,7 @@ public class MatchTest extends TestCase{
 	@Test
 	public void test_chart4() throws FileNotFoundException, IOException{
 		String proj = "Chart";
-    	String id = "11";
+    	String id = "3";
     	String projId = proj + "_" + id;
     	
     	String repoBuggy = "/home/dale/d4j/";

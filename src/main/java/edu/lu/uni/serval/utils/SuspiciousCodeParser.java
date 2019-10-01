@@ -48,6 +48,13 @@ public class SuspiciousCodeParser {
 		unit = new JavaFileParser().new MyUnit().createCompilationUnit(javaFile);
 	}
 	
+	public ITree getRootTree(File javaFile) {
+		this.javaFile = javaFile;
+		unit = new JavaFileParser().new MyUnit().createCompilationUnit(javaFile);
+		ITree rootTree = new ASTGenerator().generateTreeForJavaFile(javaFile, TokenType.EXP_JDT);
+		return rootTree;
+	}
+	
 	public String getSuperClazz(File javaFile){
 		unit = new JavaFileParser().new MyUnit().createCompilationUnit(javaFile);
 		ITree rootTree = new ASTGenerator().generateTreeForJavaFile(javaFile, TokenType.EXP_JDT);

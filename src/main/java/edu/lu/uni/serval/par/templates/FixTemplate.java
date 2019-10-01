@@ -3,9 +3,11 @@ package edu.lu.uni.serval.par.templates;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -13,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import edu.lu.uni.serval.bug.fixer.Patch;
 import edu.lu.uni.serval.jdt.tree.ITree;
+import edu.lu.uni.serval.main.Triple;
 import edu.lu.uni.serval.tbar.context.Dictionary;
 import edu.lu.uni.serval.utils.Checker;
 
@@ -33,6 +36,9 @@ public abstract class FixTemplate implements IFixTemplate {
 	public String sourceCodePath;
 	public Dictionary dic;
 	public Map<String, String> varTypesMap = new HashMap<>();
+	// feature implementation: add varName, startPos, endPos.
+	public Map<String, Triple<String, Integer, Integer>> varTypesPosMap = new HashMap<>();
+	
 	public List<String> allVarNamesList = new ArrayList<>();
 	public Map<String, List<String>> allVarNamesMap = new HashMap<>();
 	

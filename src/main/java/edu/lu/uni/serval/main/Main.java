@@ -6,6 +6,7 @@ import java.io.IOException;
 
 import edu.lu.uni.serval.bug.fixer.AbstractFixer;
 import edu.lu.uni.serval.bug.fixer.ParFixer;
+import edu.lu.uni.serval.bug.fixer.ParFixer2;
 import edu.lu.uni.serval.config.Configuration;
 import edu.lu.uni.serval.utils.SuspiciousPosition;
 
@@ -60,7 +61,7 @@ public class Main {
 			return;
 		}
 		
-		AbstractFixer fixer = new ParFixer(buggyProjectsPath, projectName, bugId, defects4jPath);
+		AbstractFixer fixer = new ParFixer2(buggyProjectsPath, projectName, bugId, defects4jPath);
 		fixer.metric = Configuration.faultLocalizationMetric;
 		fixer.dataType = dataType;
 		fixer.suspCodePosFile = new File(suspiciousFileStr);
