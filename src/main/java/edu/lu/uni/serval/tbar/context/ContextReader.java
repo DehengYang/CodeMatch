@@ -472,6 +472,8 @@ public class ContextReader {
 //						&& suspCodeAst.getChildPosition(child) == 0) {
 //					continue;
 //				}
+				// bug fix:? chart3, I do not want to add child such as "Double.NaN"
+				// no. when I exclude Double.NaN, I also exclude "copy.minX". So I have to keep this code, and keeping "Double.NaN" is fine as it is not in ft.varTypesMap.
 				if (varTrees != null) varTrees.add(child);
 				String qualifiedName = child.getLabel();
 				if (!allSuspVariables.contains(qualifiedName)) allSuspVariables.add(qualifiedName);
@@ -487,7 +489,11 @@ public class ContextReader {
 				if (!allSuspVariables.contains(nameStr)) allSuspVariables.add(nameStr);
 			} else if (Checker.isComplexExpression(childType)) {
 				identifySuspiciousVariables(child, varTrees, allSuspVariables);
-			} else if (Checker.isStatement(childType)) break;
+			} else if (Checker.isStatement(childType)) {
+				// bug fix: chart3, give a if(exp), original code only obtain exp vars, now I add identifySuspiciousVariables() to obtain its children vars
+				identifySuspiciousVariables(child, varTrees, allSuspVariables);
+//				break;
+			}
 		}
 	}
 	

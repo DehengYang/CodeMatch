@@ -411,7 +411,7 @@ public class ParFixer2 extends AbstractFixer {
 					break;
 				}
 			}
-			if(equalFlag == 0){
+			if(equalFlag == 0){ //stop loop once any patched line is not matched.
 				break;
 			}
 		}
@@ -511,6 +511,35 @@ public class ParFixer2 extends AbstractFixer {
 		if (scn1.javaBackup == null) ft.setSourceCodePath(dp.srcPath);
 		else ft.setSourceCodePath(dp.srcPath, scn1.javaBackup);
 		
+		// parse classpath.java
+		SuspiciousCodeParser scp = new SuspiciousCodeParser();
+		String suspiciousJavaFile = sc.classPath.replace(".", "/") + ".java";
+		String filePath = this.dp.srcPath + suspiciousJavaFile;
+		scp.parseJavaFile(new File(filePath));
+		int currentStartLineNo = scp.getUnit().getLineNumber(scan.getPos());
+		int currentEndLineNo=  scp.getUnit().getLineNumber(scan.getPos()+ scan.getLength());
+		
+		// exclude repeated ast match
+		// bug fix: (math81) change this.matchedEndLineNo >= currentStartLineNo into this.matchedEndLineNo >= currentEndLineNo
+		if(this.matchedStartLineNo <= currentStartLineNo && 
+				this.matchedEndLineNo >= currentEndLineNo){
+			return new Pair<String, String>("", "");
+		}else{
+			// fix bug: sometimes the line number may match a if() ast that includes
+			// even the before ast (thus causing repetition). 
+			// In this situation, we want to exlude it.
+			// P.S. after re-debugging by inserting a breakpoint here (math 81), I remember that when the line is a "}", it will correspond to a whole if() block. Therefore we need to exclude this situation.
+			if (this.matchedStartLineNo != 0 && this.matchedEndLineNo != 0){
+				if (currentStartLineNo <= this.matchedStartLineNo &&
+						currentEndLineNo >= this.matchedEndLineNo){
+					// TODO: change "" to null
+					return new Pair<String, String>("", "");
+				}
+			}
+		}
+		this.matchedStartLineNo = currentStartLineNo;
+		this.matchedEndLineNo = currentEndLineNo;
+		
 		// get all variables
 		List<ITree> suspVars = new ArrayList<>();
 		// FIXME: identifySuspiciousVariables method should be modified for my purpose 
@@ -562,9 +591,9 @@ public class ParFixer2 extends AbstractFixer {
 					continue;
 				}
 				
-				SuspiciousCodeParser scp = new SuspiciousCodeParser();
-				String filePath = result.trim();
-				ITree rootTree = scp.getRootTree(new File(filePath));
+				SuspiciousCodeParser scp2 = new SuspiciousCodeParser();
+				String filePath2 = result.trim();
+				ITree rootTree = scp2.getRootTree(new File(filePath2));
 				for(ITree itree : rootTree.getChildren()){
 					if(Checker.isTypeDeclaration(itree.getType())){		
 						// if is class declaration, get class and super class name for "type<which is a class type>"
@@ -687,33 +716,7 @@ public class ParFixer2 extends AbstractFixer {
 //        }
 //        print(mappedCodeStr);
 		
-		SuspiciousCodeParser scp = new SuspiciousCodeParser();
-		String suspiciousJavaFile = sc.classPath.replace(".", "/") + ".java";
-		String filePath = this.dp.srcPath + suspiciousJavaFile;
-		scp.parseJavaFile(new File(filePath));
-		int currentStartLineNo = scp.getUnit().getLineNumber(scan.getPos());
-		int currentEndLineNo=  scp.getUnit().getLineNumber(scan.getPos()+ scan.getLength());
 		
-		// exclude repeated ast match
-		// bug fix: (math81) change this.matchedEndLineNo >= currentStartLineNo into this.matchedEndLineNo >= currentEndLineNo
-		if(this.matchedStartLineNo <= currentStartLineNo && 
-				this.matchedEndLineNo >= currentEndLineNo){
-			return new Pair<String, String>("", "");
-		}else{
-			// fix bug: sometimes the line number may match a if() ast that includes
-			// even the before ast (thus causing repetition). 
-			// In this situation, we want to exlude it.
-			// P.S. after re-debugging by inserting a breakpoint here (math 81), I remember that when the line is a "}", it will correspond to a whole if() block. Therefore we need to exclude this situation.
-			if (this.matchedStartLineNo != 0 && this.matchedEndLineNo != 0){
-				if (currentStartLineNo <= this.matchedStartLineNo &&
-						currentEndLineNo >= this.matchedEndLineNo){
-					// TODO: change "" to null
-					return new Pair<String, String>("", "");
-				}
-			}
-		}
-		this.matchedStartLineNo = currentStartLineNo;
-		this.matchedEndLineNo = currentEndLineNo;
 		
 		
 		// find class instances
@@ -811,7 +814,7 @@ public class ParFixer2 extends AbstractFixer {
 //		FileOp.backup(dp.srcPath, "restore");
 //		
 //		// set map values
-		String[] lines = scn1.suspCodeStr.split("\n");
+		String[] lines = mappedCodeStr.split("\n");
 		int linesNo = lines.length;
 		int linesNo2 = currentEndLineNo - currentStartLineNo + 1;
 		if (linesNo != linesNo2){
