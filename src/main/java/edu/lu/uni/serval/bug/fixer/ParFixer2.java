@@ -475,9 +475,6 @@ public class ParFixer2 extends AbstractFixer {
 		// reset dp for each line.
 		this.dp.reset(this.dpPath, this.projId);
 		
-		//backup
-//		FileOp.backup(dp.srcPath, "backup");
-		
 		// get the AST node for the line
 		SuspCodeNode scn1 = parseSuspiciousCode(sc);
 		
@@ -549,11 +546,6 @@ public class ParFixer2 extends AbstractFixer {
 		// now, find all variables in patchLines (rather than the whole ast code!)
 		// this will save much effort, I suppose.
 		// now, I change my mind, I can use ContextReader.identifySuspiciousVariables to do this thing.
-		int startPosScan = scan.getPos();
-		int endPosScan = startPosScan + scan.getLength();
-		String before_match = scn1.suspCodeStr; // before match
-		String mappedCodeStr = ""; // code str after variable mapping.
-		int tmpStartPosScan = startPosScan;
 		
 		// sort the suspVars list
 		Collections.sort(suspVars, new Comparator<ITree>() {
@@ -570,6 +562,57 @@ public class ParFixer2 extends AbstractFixer {
 		
 		// first identify whether xxclass.var exists in ft.varTypesMap:
 		// chart 2 & math 81: only have this.var or var.
+		String before_match = scn1.suspCodeStr; // before match
+		String mappedCodeStr = variableMapping(ft, suspVars, scan, superClazz, clazz);
+		print(before_match);
+		print(mappedCodeStr);
+		print("");
+		
+//		// set map values
+		String[] lines = mappedCodeStr.split("\n");
+		int linesNo = lines.length;
+		int linesNo2 = currentEndLineNo - currentStartLineNo + 1;
+		if (linesNo != linesNo2){
+			writeStringToFile("error.log", "linesNo != linesNo2 \n"
+					+ currentEndLineNo + " to " + currentStartLineNo
+					+ classPath + "\n\n",true);
+		}else if(flag != "fixed_code"){
+			// bug fix: add else if.
+			// do nothing
+		}else{
+			int cnt = 0;
+			for (int lineNo = currentStartLineNo; lineNo <= currentEndLineNo; lineNo ++){
+				if (patchLinesMap.containsKey(lineNo)){
+					patchLinesMap.put(lineNo, lines[cnt].trim());
+				}
+				cnt ++;
+			}
+		}
+		
+		// set matchedFlag
+		if(!before_match.equals(mappedCodeStr)){
+			this.matchedFlag = "matched";
+		}
+		
+		return new Pair<String, String>(before_match, mappedCodeStr);
+	}
+	
+	/**
+	 * A variable mapping strategy: mapping all variables found in the code snippet.
+	 * @param ft
+	 * @param suspVars
+	 * @param scan
+	 * @param superClazz
+	 * @param clazz
+	 * @return
+	 * @throws IOException
+	 */
+	private String variableMapping(FixTemplate ft, List<ITree> suspVars, ITree scan, String superClazz, String clazz) throws IOException {
+		
+		int startPosScan = scan.getPos();
+		int endPosScan = startPosScan + scan.getLength();
+		String mappedCodeStr = ""; // code str after variable mapping.
+		int tmpStartPosScan = startPosScan;
 		
 		// modifiy ft.varTypesMap
 		Map<String, String> varNewTypesMap = new HashMap<>();
@@ -579,18 +622,18 @@ public class ParFixer2 extends AbstractFixer {
 			String type = entry.getValue();
 			if(SuspiciousCodeParser.isClass(type)){ // if is a class
 				// find its super class
-				
+
 				String[] cmd = {"/bin/sh","-c", " find " 
-					+ dp.srcPath + " -name " + type + ".java"
-					};
+						+ dp.srcPath + " -name " + type + ".java"
+				};
 				// e.g., find /home/dale/d4j/Chart/Chart_1/source/ -name AbstractCategoryItemRenderer.java
 				String result = ShellUtils.shellRun2(cmd);
-				
+
 				// bug fix: chart3: propertyChangeSupport is a class, but I cannot find it... And the result is ""
 				if (result.trim().equals("")){
 					continue;
 				}
-				
+
 				SuspiciousCodeParser scp2 = new SuspiciousCodeParser();
 				String filePath2 = result.trim();
 				ITree rootTree = scp2.getRootTree(new File(filePath2));
@@ -625,179 +668,56 @@ public class ParFixer2 extends AbstractFixer {
 				varNewTypesMap.put(var, type + "Var"); //add Var, e.g., int to intVar
 			}
 		}
-		
-		
+
+
 		for (ITree var : suspVars){
 			// init
 			String mappedVar = ""; // just for replace original varibale with mappedVar
 			int startPos = var.getPos();
-            int endPos =  startPos + var.getLength();
-            
-            // simple check (if out of bound)
-            if (startPos < startPosScan || endPos > endPosScan){
-            	writeStringToFile(extraLog, var.getLabel() + "is out of index! \n",true);
-            	continue;
-            }
-            
-            // code part 1
-            String codePart1 = ft.getSubSuspiciouCodeStr(tmpStartPosScan, startPos);
-            mappedCodeStr += codePart1; // first add unchanged code part.
-            
-            String label = var.getLabel();
-            
-            // code improve: more complicated var checking and var mapping.
-            if(label.contains(".")){ //if var is : this.var || var.length || varA.varB.length
-	            // bug fix: change "." into "\\." when spliting
-            	String[] subLabels = label.split("\\.");
-	            for(String subLabel : subLabels){ // traverse subLabels
-	            	if(varNewTypesMap.containsKey(subLabel)){
-	            		mappedVar += varNewTypesMap.get(subLabel) + "."; // map variable into <xxxtype>Var
-	            	}else if(varNewTypesMap.containsKey("this." + subLabel)){
-	            		mappedVar += varNewTypesMap.get("this." + subLabel) + "."; // map variable into <xxxtype>Var
-	            	}else{
-	            		mappedVar += subLabel + ".";
-	            	}
-	            }
-	            int len = mappedVar.length();
-	            mappedVar = mappedVar.substring(0,len-1);  // wipe out last additional "."
-            }else{ // condition: var without "."
-            	if(varNewTypesMap.containsKey(label)){
-                	mappedVar = varNewTypesMap.get(label); // map variable into <xxxtype>Var
-                }else if(varNewTypesMap.containsKey("this." + label)){
-                	mappedVar = varNewTypesMap.get("this." + label); // map variable into <xxxtype>Var
-                }else{
-                	writeStringToFile(extraLog, var.getLabel() + "is not in ft.varTypesMap! \n",true);
-                	continue;
-                }
-            }
-            // simple check
-            // bug fix:org.apache.commons.math.analysis.polynomials.PolynomialFunction:143 (math 81)
-//            if(ft.varTypesMap.containsKey(label)){
-//            	mappedVar = ft.varTypesMap.get(label) + "Var"; // map variable into <xxxtype>Var
-//            }else if(ft.varTypesMap.containsKey("this." + label)){
-//            	mappedVar = ft.varTypesMap.get("this." + label) + "Var"; // map variable into <xxxtype>Var
-//            }else{
-//            	writeStringToFile(extraLog, var.getLabel() + "is not in ft.varTypesMap! \n",true);
-//            	continue;
-//            }
-            
-            mappedCodeStr += mappedVar; // add mapped var
-            tmpStartPosScan = endPos; // change start pos. (because mapped code str already add varTypeMatched.
+			int endPos =  startPos + var.getLength();
+
+			// simple check (if out of bound)
+			if (startPos < startPosScan || endPos > endPosScan){
+				writeStringToFile(extraLog, var.getLabel() + "is out of index! \n",true);
+				continue;
+			}
+
+			// code part 1
+			String codePart1 = ft.getSubSuspiciouCodeStr(tmpStartPosScan, startPos);
+			mappedCodeStr += codePart1; // first add unchanged code part.
+
+			String label = var.getLabel();
+
+			// code improve: more complicated var checking and var mapping.
+			if(label.contains(".")){ //if var is : this.var || var.length || varA.varB.length
+				// bug fix: change "." into "\\." when spliting
+				String[] subLabels = label.split("\\.");
+				for(String subLabel : subLabels){ // traverse subLabels
+					if(varNewTypesMap.containsKey(subLabel)){
+						mappedVar += varNewTypesMap.get(subLabel) + "."; // map variable into <xxxtype>Var
+					}else if(varNewTypesMap.containsKey("this." + subLabel)){
+						mappedVar += varNewTypesMap.get("this." + subLabel) + "."; // map variable into <xxxtype>Var
+					}else{
+						mappedVar += subLabel + ".";
+					}
+				}
+				int len = mappedVar.length();
+				mappedVar = mappedVar.substring(0,len-1);  // wipe out last additional "."
+			}else{ // condition: var without "."
+				if(varNewTypesMap.containsKey(label)){
+					mappedVar = varNewTypesMap.get(label); // map variable into <xxxtype>Var
+				}else if(varNewTypesMap.containsKey("this." + label)){
+					mappedVar = varNewTypesMap.get("this." + label); // map variable into <xxxtype>Var
+				}else{
+					writeStringToFile(extraLog, var.getLabel() + "is not in ft.varTypesMap! \n",true);
+					continue;
+				}
+			}
+			mappedCodeStr += mappedVar; // add mapped var
+			tmpStartPosScan = endPos; // change start pos. (because mapped code str already add varTypeMatched.
 		}
 		mappedCodeStr += ft.getSubSuspiciouCodeStr(tmpStartPosScan, endPosScan);// add last rest code str
-		print(before_match);
-		print(mappedCodeStr);
-		print("");
 		
-////		Map<String, String> codeParts = new HashMap<String, String>();
-//		ValueComparator bvc = new ValueComparator(ft.varTypesPosMap);
-//        TreeMap<String, Triple<String, Integer, Integer>> sortedVarTypesPosMap = new TreeMap<String, Triple<String, Integer, Integer>>(bvc);
-//        sortedVarTypesPosMap.putAll(ft.varTypesPosMap);
-//        writeStringToFile(extraLog, sortedVarTypesPosMap.toString() + "\n", true);
-//        String mappedCodeStr = "";
-//        //for(Map.Entry<String, Triple<String, Integer, Integer>> entry : sortedVarTypesPosMap.entrySet()){
-//        for (ITree var : suspVars){
-////        	String mapKey = entry.getKey();
-////            Triple<String, Integer, Integer> mapValue = entry.getValue();
-//            int startPos = var.getPos();
-//            int endPos =  startPos + var.getLength();
-//            
-//            // simple check (if out of bound)
-//            if (startPos < startPosScan || endPos > endPosScan){
-//            	writeStringToFile(extraLog, var.getLabel() + "is out of index! \n",true);
-//            	continue;
-//            }
-//            
-//            String codePart1 = ft.getSubSuspiciouCodeStr(startPosScan, startPos);
-//			String codePart2 = ft.getSubSuspiciouCodeStr(startPos,endPos);
-//			mappedCodeStr += codePart1;
-////			mappedCodeStr += mapValue.getFirst();
-////			startPosScan = endPos; // prepare to deal with next var
-//        }
-//        print(mappedCodeStr);
-		
-		
-		
-		
-		// find class instances
-//		scp.findClazzInstance(scan, ft);
-//		ITree clazzIns = scp.getClazzInstance();
-//		
-//		// for each class instance, replace it with its class name
-//		String before_match = scn1.suspCodeStr;
-//		int whileCnt = 0;
-//		while(clazzIns != null && whileCnt <= 30){
-//			whileCnt ++;
-//			
-//			int suspExpStartPos = clazzIns.getPos();
-//			int suspExpEndPos = suspExpStartPos + clazzIns.getLength();
-//			// specified line start and end pos
-//			int suspCodeStartPos = scan.getPos();
-//			int suspCodeEndPos = suspCodeStartPos + scan.getLength();
-//			// part 1 and 2
-//			String suspCodePart1 = ft.getSubSuspiciouCodeStr(suspCodeStartPos, suspExpStartPos);
-//			String suspCodePart2 = ft.getSubSuspiciouCodeStr(suspExpEndPos,suspCodeEndPos);
-//			
-//			// conduct replacement
-//			String label = clazzIns.getLabel();
-//			// sometimes lalel may be "Name:area"
-//			if (label.contains(":")){
-//				label = label.split(":")[1];
-//			}
-//			
-//			String replace = "null";
-//			if(ft.varTypesMap.containsKey(label)){
-//				replace = ft.varTypesMap.get(label);
-//				
-//				// if is same as current class, then  
-//				if (replace.equals(clazz) && superClazz != null){
-//					replace = superClazz;
-//				}
-//				
-//				// if not, parse the file and get the class.
-////				String[] cmd2 = {"/bin/sh","-c", " find " 
-////						+ dp.srcPath + " -name " + replace + ".java"
-////						};
-////				// e.g., find /home/dale/d4j/Chart/Chart_1/source/ -name AbstractCategoryItemRenderer.java
-////				String result = ShellUtils.shellRun2(cmd2);
-////				String otherClazz = scp.getSuperClazz(new File(result.trim()));
-////				if(otherClazz != null){
-////					replace = otherClazz;
-////				}
-//			}
-//			
-//			// FIXME: multi replace
-//			scn1.suspCodeStr = suspCodePart1  + replace + suspCodePart2;
-//			
-//			// set matchedFlag
-//			this.matchedFlag = "matched";
-//			
-//			// apply and re-parseAST
-//			Patch patch = new Patch();
-//			patch.setFixedCodeStr1(scn1.suspCodeStr);
-//			this.addPatchCodeToFile(scn1, patch);// Insert the patch.
-//
-//			// re-parse
-//			scn1 = parseSuspiciousCode(sc);
-//			if (scn1 == null){
-//				System.err.println("scn1 is null. sc:" + sc.lineNumber);
-//				return new Pair<String, String>("null_ast", "null_ast");
-//			}
-//			ft.setSuspiciousCodeStr(scn1.suspCodeStr); // re-set ft.values
-//			ft.setSuspiciousCodeTree(scn1.suspCodeAstNode); //scn1.suspCodeAstNode
-//			// refind 
-//			scan = scn1.suspCodeAstNode; 
-//			// refresh scp
-//			scp = new SuspiciousCodeParser();
-//			suspiciousJavaFile = sc.classPath.replace(".", "/") + ".java";
-//			filePath = this.dp.srcPath + suspiciousJavaFile;
-//			scp.parseJavaFile(new File(filePath));
-//			// bug Fix:
-//			scp.resetClazzInstance();
-//			scp.findClazzInstance(scan, ft);
-//			clazzIns = scp.getClazzInstance();
-////			ft.generatePatch(suspCodePart1  + replace + suspCodePart2);
-//		}
 		// replace this.
 		if (mappedCodeStr.contains("this.")){
 			if (superClazz != null ){
@@ -807,39 +727,10 @@ public class ParFixer2 extends AbstractFixer {
 			}else{
 				print("cannot find both class and super class.");
 			}
-			
-		}
-//		
-//		// restore
-//		FileOp.backup(dp.srcPath, "restore");
-//		
-//		// set map values
-		String[] lines = mappedCodeStr.split("\n");
-		int linesNo = lines.length;
-		int linesNo2 = currentEndLineNo - currentStartLineNo + 1;
-		if (linesNo != linesNo2){
-			writeStringToFile("error.log", "linesNo != linesNo2 \n"
-					+ currentEndLineNo + " to " + currentStartLineNo
-					+ classPath + "\n\n",true);
-		}else if(flag != "fixed_code"){
-			// bug fix: add else if.
-			// do nothing
-		}else{
-			int cnt = 0;
-			for (int lineNo = currentStartLineNo; lineNo <= currentEndLineNo; lineNo ++){
-				if (patchLinesMap.containsKey(lineNo)){
-					patchLinesMap.put(lineNo, lines[cnt].trim());
-				}
-				cnt ++;
-			}
+
 		}
 		
-		// set matchedFlag
-		if(!before_match.equals(mappedCodeStr)){
-			this.matchedFlag = "matched";
-		}
-		
-		return new Pair<String, String>(before_match, mappedCodeStr);
+		return mappedCodeStr;
 	}
 
 	// get class name, super class, and method name string
