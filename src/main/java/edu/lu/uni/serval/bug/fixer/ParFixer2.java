@@ -61,14 +61,19 @@ public class ParFixer2 extends AbstractFixer {
 	private String fullPath = null;
 	private String dpPath = null;
 	private String projId = null;
-	private String matchedFlag = null;
+//	private String matchedFlag = null;
 	private String matchedLogPath = null;
 	private List<String> fixed_code = new ArrayList<>();
+	private List<String> fixed_code0 = new ArrayList<>();
+	private List<String> fixed_code1 = new ArrayList<>();
 	private List<String> similar_code = new ArrayList<>();
+	private List<String> similar_code0 = new ArrayList<>();
+	private List<String> similar_code1 = new ArrayList<>();
 	private String classPath = "null";
 	
 	// code improvement: add HashMap for patch_match
-	private Map<Integer, String> patchLinesMap = new HashMap<Integer, String>(); 
+	// add feature. (Map<String, String> more variableMapping strategies)
+	private Map<Integer, Map<String, String>> patchLinesMap = new HashMap<Integer, Map<String, String>>(); 
 	
 	private int patchStartLineNo = 0;
 	private int patchEndLineNo = 0;
@@ -79,7 +84,7 @@ public class ParFixer2 extends AbstractFixer {
 	private String matchMethod = null;
 	
 	// code improve: only save the same fixCode once. (do not repeat)
-	private int fixCodeSaveFlag = 0;
+	private Map<String, Integer> fixCodeSaveFlag = new HashMap<>();
 	
 	// code improve:
 	// private File bkupFolder;
@@ -101,7 +106,10 @@ public class ParFixer2 extends AbstractFixer {
 		patchMethod = null;
 		matchMethod = null;
 		
-		fixCodeSaveFlag = 0;
+		fixCodeSaveFlag.clear();
+		fixCodeSaveFlag.put("ori", 0);
+		fixCodeSaveFlag.put("0", 0);
+		fixCodeSaveFlag.put("1", 0);
 		
 		// bug fix: clear again!
 		patchLinesMap.clear();
@@ -146,7 +154,7 @@ public class ParFixer2 extends AbstractFixer {
 				// init all relevant
 				initAll();
 				for (int line = startLine; line <= endLine; line ++){
-					patchLinesMap.put(line, "");
+					patchLinesMap.put(line, new HashMap<String,String>()); // each patchLinesMap corresponds a "lines_xxx.log" file
 				}
 				
 				// exclude type1 lines
@@ -174,7 +182,7 @@ public class ParFixer2 extends AbstractFixer {
 	 * exlcude type1 lines from pacthLinesMap
 	 * @param patchLinesMap2
 	 */
-	private void excludeTypeOneLines(Map<Integer, String> patchLinesMap2) {
+	private void excludeTypeOneLines(Map<Integer, Map<String, String>> patchLinesMap2) {
 		File dir = new File(Configuration.linesFilePath);
 		// list all files in the dir, and select what we want.
 		File[] files = dir.listFiles(); 
@@ -303,64 +311,89 @@ public class ParFixer2 extends AbstractFixer {
 	public void runMatchSingleLine(SuspiciousPosition sc, String classPath, String flag) throws IOException{
 		List<String> beforeMatches = new ArrayList<>();
 		List<String> afterMatches  = new ArrayList<>();
+		List<String> afterMatches1  = new ArrayList<>();
 		
 		// bug fix: re-set matchedStart && end LineNo 
 		this.matchedStartLineNo = 0;
 		this.matchedEndLineNo = 0;
-		this.matchedFlag = "";
+		List<String>matchedFlags = new ArrayList<>(); 
+		matchedFlags.add("");
+		matchedFlags.add(""); // init two match flags for two variable mapping strategies.
 		
 		for (int lineNo = this.startLineNo; lineNo <= this.endLineNo; lineNo ++){
 			sc.lineNumber = lineNo;
-			Pair<String, String> pair = matchSingleLine(sc, flag);
-			beforeMatches.add(pair.getFirst()+"\n");
-			afterMatches.add(pair.getSecond()+"\n");
+			Pair<String, List<String>> pair = matchSingleLine(sc, flag, matchedFlags);
+			String beforeMatch = pair.getFirst();
+			String afterMatch = pair.getSecond().get(0);
+			String afterMatch1 = pair.getSecond().get(1); // get all matches (before, after, after1)
+			
+			beforeMatches.add(beforeMatch+"\n");
+			afterMatches.add(afterMatch+"\n");
+			afterMatches1.add(afterMatch1+"\n");
 		}
 		
-		writeStringToFile(logPath, "---before match--- "
-				+ classPath + " <" + this.startLineNo + ", " + this.endLineNo + ">\n", true);
-		for (String match : beforeMatches){
+		record(logPath,beforeMatches, "origianl", classPath, this.startLineNo, this.endLineNo);
+		// code improvement: print matched string only when the code snippet is changed.
+		if(!matchedFlags.get(0).equals("")){
+			record(logPath,afterMatches, "afterMatch-type0", classPath, this.startLineNo, this.endLineNo); // variableMapping 
+		}
+		if(!matchedFlags.get(1).equals("")){
+			record(logPath,afterMatches1, "afterMatch-type1", classPath, this.startLineNo, this.endLineNo); // variableMapping1
+		}
+//		writeStringToFile(logPath, "\n\n", true);
+		
+		// set fixed code & similar code with three types: original, varMap0, varMap1. 
+		if (flag.equals("fixed_code")){
+			fixed_code.clear();
+			fixed_code0.clear();
+			fixed_code1.clear();
+			
+			fixed_code.addAll(beforeMatches);
+			fixed_code0.addAll(afterMatches);
+			fixed_code1.addAll(afterMatches1);
+		}else{
+			similar_code.clear();
+			similar_code0.clear();
+			similar_code1.clear();
+			
+			similar_code.addAll(beforeMatches);
+			similar_code0.addAll(afterMatches);
+			similar_code1.addAll(afterMatches1);
+		}
+		//Match-1:compare original code
+		trimCode(fixed_code);
+		trimCode(similar_code);
+		compareFixedAndSim(fixed_code, similar_code, "ori");
+		
+		trimCode(fixed_code0);
+		trimCode(similar_code0);
+		compareFixedAndSim(fixed_code0, similar_code0, "0");
+		
+		trimCode(fixed_code1);
+		trimCode(similar_code1);
+		compareFixedAndSim(fixed_code1, similar_code1, "1");
+	}
+	
+	/**
+	 * This is to save List<String> into a file
+	 * @param log
+	 * @param matches
+	 * @param flag
+	 */
+	private void record(String log, List<String> matches, String flag, 
+			String classPath, int startLineNo, int endLineNo) {
+		writeStringToFile(log, "---" + flag + "--- "
+				+ classPath + " <" + startLineNo + ", " + endLineNo + ">\n", true);
+		for (String match : matches){
 			// fix bug: add trim() to wipe out "\n"
 			if (match.trim().equals("")){
 				continue;
 			}
-			writeStringToFile(logPath, match, true);
+			writeStringToFile(log, match +"\n", true);
 		}
-		// code improvement: print matched string only when the code snippet is changed.
-		if (!matchedFlag.equals("")){
-			writeStringToFile(logPath, "\n---after match--- " + matchedFlag + " \n", true);
-			for (String match : afterMatches){
-				// fix bug: add trim() to wipe out "\n"
-				if (match.trim().equals("")){
-					continue;
-				}
-				writeStringToFile(logPath, match, true);
-			}
-		}
-		
-		writeStringToFile(logPath, "\n\n", true);
-		
-		// get fixed_code
-		if (flag.equals("fixed_code")){
-			fixed_code.clear();
-			if (!matchedFlag.equals("")){
-				fixed_code.addAll(afterMatches);
-			}else{
-				fixed_code.addAll(beforeMatches);
-			}
-		}else{
-			similar_code.clear();
-			if (!matchedFlag.equals("")){
-				similar_code.addAll(afterMatches);
-			}else{
-				similar_code.addAll(beforeMatches);
-			}
-		}
-		
-		trimCode(fixed_code);
-		trimCode(similar_code);
-		compareFixedAndSim(fixed_code, similar_code);
+		writeStringToFile(log, "\n", true);
 	}
-	
+
 	private void trimCode(List<String> code){
 		// bug fix: should change line <= into line <
 		for(int line = 0; line < code.size(); line++){
@@ -369,7 +402,8 @@ public class ParFixer2 extends AbstractFixer {
 		}
 	}
 	
-	private void compareFixedAndSim(List<String> fixed_code_ori, List<String> sim_code_ori) {
+	private void compareFixedAndSim(List<String> fixed_code_ori, 
+			List<String> sim_code_ori, String mapType) {
 		// delete all "" string in the two list.
 		List<String> fixed_code = filterNullStr(fixed_code_ori);
 		List<String> sim_code = filterNullStr(sim_code_ori);
@@ -386,8 +420,20 @@ public class ParFixer2 extends AbstractFixer {
 			for (String fixLine : fix_lines){
 				fixLine = fixLine.trim();
 				
-				if (!patchLinesMap.containsValue(fixLine)){
-					//writeStringToFile(extraLog, "patchLinesMap does not contain " + fixLine + "\n", true);
+//				if (!patchLinesMap.containsValue(Arrays.asList(mapType, fixLine))){
+//					//writeStringToFile(extraLog, "patchLinesMap does not contain " + fixLine + "\n", true);
+//					continue;
+//				}
+				int isPatchLineFlag = 0;
+				//for (Map.Entry<Integer, Map<String, String>> entry : patchLinesMap.entrySet()){
+				for (Map<String, String> valueMap : patchLinesMap.values()){
+					String line = valueMap.get(mapType); // get line according to mapType
+					if (line.equals(fixLine)){
+						isPatchLineFlag = 1; // in the map.
+						break;
+					}
+				}
+				if(isPatchLineFlag == 0){ // is not a patch line
 					continue;
 				}
 				
@@ -417,37 +463,43 @@ public class ParFixer2 extends AbstractFixer {
 		}
 		
 		if (equalFlag == 1){
-			if(fixCodeSaveFlag == 0){
+			if(fixCodeSaveFlag.get(mapType) == 0){
+				record(matchedLogPath, fixed_code, "patch code " + mapType,
+						patchClassPath, this.patchStartLineNo, this.patchEndLineNo);
 				// bug fix: a copy&paste bug. should change logPath to matchedLogPath
-				writeStringToFile(matchedLogPath, "---patch code--- "
-						+ patchClassPath + " <" + this.patchStartLineNo + ", " + this.patchEndLineNo + ">\n", true);
-				for (String match : fixed_code){
-					// fix bug: add trim() to wipe out "\n"
-					if (match.trim().equals("")){
-						continue;
-					}
-					writeStringToFile(matchedLogPath, match + "\n", true);
-				}
-				writeStringToFile(matchedLogPath, "\n", true);	
+//				writeStringToFile(matchedLogPath, "---patch code " + mapType + " --- "
+//						+ patchClassPath + " <" + this.patchStartLineNo + ", " + this.patchEndLineNo + ">\n", true);
+//				for (String match : fixed_code){
+//					// fix bug: add trim() to wipe out "\n"
+//					if (match.trim().equals("")){
+//						continue;
+//					}
+//					writeStringToFile(matchedLogPath, match + "\n", true);
+//				}
+//				writeStringToFile(matchedLogPath, "\n", true);	
 
-				fixCodeSaveFlag = 1;
+				fixCodeSaveFlag.put(mapType, 1);
 			}
 			String str = "";
 			if(patchMethod.equals(matchMethod)){
-				str = "---fix ingredient---(SameMethod) ";
+				str = "fix ingredient(SameMethod)";
+//				str = "---fix ingredient---(SameMethod) ";
 			}else{
-				str = "---fix ingredient--- ";
+				str = "fix ingredient";
+//				str = "---fix ingredient--- ";
 			}
-			writeStringToFile(matchedLogPath, str
-					+ classPath + " <" + this.startLineNo + ", " + this.endLineNo + ">\n", true);
-			for (String match : sim_code){
-				// fix bug: add trim() to wipe out "\n"
-				if (match.trim().equals("")){
-					continue;
-				}
-				writeStringToFile(matchedLogPath, match + "\n", true);
-			}
-			writeStringToFile(matchedLogPath, "\n\n", true);
+			record(matchedLogPath, sim_code, str + " " + mapType,
+					classPath, this.startLineNo, this.endLineNo);
+//			writeStringToFile(matchedLogPath, str
+//					+ classPath + " <" + this.startLineNo + ", " + this.endLineNo + ">\n", true);
+//			for (String match : sim_code){
+//				// fix bug: add trim() to wipe out "\n"
+//				if (match.trim().equals("")){
+//					continue;
+//				}
+//				writeStringToFile(matchedLogPath, match + "\n", true);
+//			}
+//			writeStringToFile(matchedLogPath, "\n\n", true);
 		}
 	}
 
@@ -464,7 +516,7 @@ public class ParFixer2 extends AbstractFixer {
 		return filted_list;
 	}
 
-	public Pair<String, String> matchSingleLine(SuspiciousPosition sc, String flag) throws IOException {
+	public Pair<String, List<String>> matchSingleLine(SuspiciousPosition sc, String flag, List<String> matchedFlags) throws IOException {
 		// count 
 		parsedLinesCnt ++;
 		String str = "Parsed Lines Count: " + parsedLinesCnt 
@@ -482,7 +534,7 @@ public class ParFixer2 extends AbstractFixer {
 			// (fix bug) if in matched. return "". else return "null_ast" str.
 			if (sc.lineNumber <= this.matchedEndLineNo &&
 					sc.lineNumber >= this.matchedStartLineNo){
-				return new Pair<String, String>("", "");
+				return new Pair<String, List<String>>("", Arrays.asList("",""));
 			}
 			String javaFilePath = fullPath + ".java";
 			String results = ShellUtils.shellRunForFileRead(Arrays.asList(
@@ -490,7 +542,7 @@ public class ParFixer2 extends AbstractFixer {
 			if (results.trim().equals("")){
 				results = "empty line";
 			}
-			return new Pair<String, String>(results, results);		
+			return new Pair<String, List<String>>(results, Arrays.asList(results,results));		
 		}
 		
 		ITree scan = scn1.suspCodeAstNode; 
@@ -520,7 +572,7 @@ public class ParFixer2 extends AbstractFixer {
 		// bug fix: (math81) change this.matchedEndLineNo >= currentStartLineNo into this.matchedEndLineNo >= currentEndLineNo
 		if(this.matchedStartLineNo <= currentStartLineNo && 
 				this.matchedEndLineNo >= currentEndLineNo){
-			return new Pair<String, String>("", "");
+			return new Pair<String, List<String>>("", Arrays.asList("",""));
 		}else{
 			// fix bug: sometimes the line number may match a if() ast that includes
 			// even the before ast (thus causing repetition). 
@@ -530,7 +582,7 @@ public class ParFixer2 extends AbstractFixer {
 				if (currentStartLineNo <= this.matchedStartLineNo &&
 						currentEndLineNo >= this.matchedEndLineNo){
 					// TODO: change "" to null
-					return new Pair<String, String>("", "");
+					return new Pair<String, List<String>>("", Arrays.asList("",""));
 				}
 			}
 		}
@@ -563,38 +615,47 @@ public class ParFixer2 extends AbstractFixer {
 		// first identify whether xxclass.var exists in ft.varTypesMap:
 		// chart 2 & math 81: only have this.var or var.
 		String before_match = scn1.suspCodeStr; // before match
-		String mappedCodeStr = variableMapping(ft, suspVars, scan, superClazz, clazz);
+		
+		// the clazzInstanceMap is to avoid repeated javaFileParsing for getting superClazz or clazz name. (when there are more than one variable mapping strategy)
+		Map<String, String> clazzInstanceMap = new HashMap<>();
+		String mappedCodeStr = variableMapping(ft, suspVars, scan, superClazz, 
+				clazz, flag, currentStartLineNo, currentEndLineNo,clazzInstanceMap);
 		print(before_match);
-		print(mappedCodeStr);
+		print("variable mapping 0 :\n" + mappedCodeStr);
 		print("");
 		
-//		// set map values
-		String[] lines = mappedCodeStr.split("\n");
+		String mappedCodeStr1 = variableMapping1(ft, suspVars, scan, superClazz, 
+				clazz, flag, currentStartLineNo, currentEndLineNo,clazzInstanceMap);
+		print(before_match);
+		print("variable mapping 1 :\n" + mappedCodeStr1);
+		print("");
+
+		// set matchedFlag
+		if(!before_match.equals(mappedCodeStr)){
+			matchedFlags.set(0, "matched");
+		}
+		if(!before_match.equals(mappedCodeStr1)){
+			matchedFlags.set(1, "matched");
+		}
+		
+		// for ori patch lines
+		// refactoring: set patchLinesMap values for fixed code snippets.
+		String[] lines = before_match.split("\n");
 		int linesNo = lines.length;
 		int linesNo2 = currentEndLineNo - currentStartLineNo + 1;
-		if (linesNo != linesNo2){
-			writeStringToFile("error.log", "linesNo != linesNo2 \n"
-					+ currentEndLineNo + " to " + currentStartLineNo
-					+ classPath + "\n\n",true);
-		}else if(flag != "fixed_code"){
-			// bug fix: add else if.
-			// do nothing
-		}else{
+		if(flag == "fixed_code" && linesNo == linesNo2){
 			int cnt = 0;
 			for (int lineNo = currentStartLineNo; lineNo <= currentEndLineNo; lineNo ++){
 				if (patchLinesMap.containsKey(lineNo)){
-					patchLinesMap.put(lineNo, lines[cnt].trim());
+					Map<String, String> valueMap = patchLinesMap.get(lineNo); //get current valueMap
+					valueMap.put("ori", lines[cnt].trim());
+					patchLinesMap.put(lineNo, valueMap); // refresh/update the valueMap
 				}
 				cnt ++;
 			}
 		}
 		
-		// set matchedFlag
-		if(!before_match.equals(mappedCodeStr)){
-			this.matchedFlag = "matched";
-		}
-		
-		return new Pair<String, String>(before_match, mappedCodeStr);
+		return new Pair<String, List<String>>(before_match, Arrays.asList(mappedCodeStr,mappedCodeStr1));
 	}
 	
 	/**
@@ -607,7 +668,10 @@ public class ParFixer2 extends AbstractFixer {
 	 * @return
 	 * @throws IOException
 	 */
-	private String variableMapping(FixTemplate ft, List<ITree> suspVars, ITree scan, String superClazz, String clazz) throws IOException {
+	private String variableMapping(FixTemplate ft, List<ITree> suspVars, ITree scan, 
+				String superClazz, String clazz, String flag, 
+				int currentStartLineNo, int currentEndLineNo,
+				Map<String, String> clazzInstanceMap) throws IOException {
 		
 		int startPosScan = scan.getPos();
 		int endPosScan = startPosScan + scan.getLength();
@@ -621,45 +685,13 @@ public class ParFixer2 extends AbstractFixer {
 			String var = entry.getKey();
 			String type = entry.getValue();
 			if(SuspiciousCodeParser.isClass(type)){ // if is a class
-				// find its super class
-
-				String[] cmd = {"/bin/sh","-c", " find " 
-						+ dp.srcPath + " -name " + type + ".java"
-				};
-				// e.g., find /home/dale/d4j/Chart/Chart_1/source/ -name AbstractCategoryItemRenderer.java
-				String result = ShellUtils.shellRun2(cmd);
-
-				// bug fix: chart3: propertyChangeSupport is a class, but I cannot find it... And the result is ""
-				if (result.trim().equals("")){
-					continue;
-				}
-
-				SuspiciousCodeParser scp2 = new SuspiciousCodeParser();
-				String filePath2 = result.trim();
-				ITree rootTree = scp2.getRootTree(new File(filePath2));
-				for(ITree itree : rootTree.getChildren()){
-					if(Checker.isTypeDeclaration(itree.getType())){		
-						// if is class declaration, get class and super class name for "type<which is a class type>"
-						String[] clazzStrList = itree.toString().split(",");
-						String superClazz2 = null;
-						String clazz2 = null;
-						for (String clazzStr : clazzStrList){
-							if(clazzStr.contains("@@SuperClass:")){
-								superClazz2 = clazzStr.split(":")[1];
-							}
-							if(clazzStr.contains("ClassName:")){
-								clazz2 = clazzStr.split(":")[1];
-							}
-						}
-						if(superClazz2 != null){
-							varNewTypesMap.put(var, superClazz2);
-						}else if(clazz2 != null){
-							varNewTypesMap.put(var, clazz2);
-						}else{
-							varNewTypesMap.put(var, type);
-							print("error occurs in modifiying ft.varTypesMap;");
-						}
-					}
+				if(clazzInstanceMap.containsKey(type)){ // already in map
+					varNewTypesMap.put(var, clazzInstanceMap.get(type));
+				}else{
+					// find its super class
+					String clazzOrSuper = getClazzOrSuper(type);
+					clazzInstanceMap.put(type, clazzOrSuper);
+					varNewTypesMap.put(var, clazzOrSuper);
 				}
 			}else if(type.equals("Integer")){
 				varNewTypesMap.put(var, "int"); //change Integer to int
@@ -668,7 +700,6 @@ public class ParFixer2 extends AbstractFixer {
 				varNewTypesMap.put(var, type + "Var"); //add Var, e.g., int to intVar
 			}
 		}
-
 
 		for (ITree var : suspVars){
 			// init
@@ -687,6 +718,10 @@ public class ParFixer2 extends AbstractFixer {
 			mappedCodeStr += codePart1; // first add unchanged code part.
 
 			String label = var.getLabel();
+			// bug fix: chart3: "Name:iteratoris not in ft.varTypesMap! "
+			if (label.contains(":")){
+				label = label.split(":")[1];
+			}
 
 			// code improve: more complicated var checking and var mapping.
 			if(label.contains(".")){ //if var is : this.var || var.length || varA.varB.length
@@ -709,8 +744,10 @@ public class ParFixer2 extends AbstractFixer {
 				}else if(varNewTypesMap.containsKey("this." + label)){
 					mappedVar = varNewTypesMap.get("this." + label); // map variable into <xxxtype>Var
 				}else{
+					// bug fix: comment continue;
+					mappedVar = label;
 					writeStringToFile(extraLog, var.getLabel() + "is not in ft.varTypesMap! \n",true);
-					continue;
+//					continue;
 				}
 			}
 			mappedCodeStr += mappedVar; // add mapped var
@@ -728,6 +765,192 @@ public class ParFixer2 extends AbstractFixer {
 				print("cannot find both class and super class.");
 			}
 
+		}
+		
+		// refactoring: set patchLinesMap values for fixed code snippets.
+		String[] lines = mappedCodeStr.split("\n");
+		int linesNo = lines.length;
+		int linesNo2 = currentEndLineNo - currentStartLineNo + 1;
+		if(flag == "fixed_code" && linesNo == linesNo2){
+			int cnt = 0;
+			for (int lineNo = currentStartLineNo; lineNo <= currentEndLineNo; lineNo ++){
+				if (patchLinesMap.containsKey(lineNo)){
+					Map<String, String> valueMap = patchLinesMap.get(lineNo); //get current valueMap
+					valueMap.put("0", lines[cnt].trim());
+					patchLinesMap.put(lineNo, valueMap); // refresh/update the valueMap
+				}
+				cnt ++;
+			}
+		}
+		
+		return mappedCodeStr;
+	}
+	
+	private String getClazzOrSuper(String type) throws IOException {
+		
+		String[] cmd = {"/bin/sh","-c", " find " 
+				+ dp.srcPath + " -name " + type + ".java"
+		};
+		// e.g., find /home/dale/d4j/Chart/Chart_1/source/ -name AbstractCategoryItemRenderer.java
+		String result = ShellUtils.shellRun2(cmd);
+
+		// bug fix: chart3: propertyChangeSupport is a class, but I cannot find it... And the result is ""
+		if (result.trim().equals("")){
+//			print("The cmd result is null in getClazzOrSuper() for " + type);
+			// bug fix: change null to type
+			return type;
+		}
+		
+		SuspiciousCodeParser scp2 = new SuspiciousCodeParser();
+		String filePath2 = result.trim();
+		ITree rootTree = scp2.getRootTree(new File(filePath2));
+		for(ITree itree : rootTree.getChildren()){
+			if(Checker.isTypeDeclaration(itree.getType())){		
+				// if is class declaration, get class and super class name for "type<which is a class type>"
+				String[] clazzStrList = itree.toString().split(",");
+				String superClazz = null;
+				String clazz = null;
+				for (String clazzStr : clazzStrList){
+					if(clazzStr.contains("@@SuperClass:")){
+						superClazz = clazzStr.split(":")[1];
+					}
+					if(clazzStr.contains("ClassName:")){
+						clazz = clazzStr.split(":")[1];
+					}
+				}
+				if(superClazz != null){
+					return superClazz;
+				}else if(clazz != null){
+					return clazz;
+				}else{
+					print("error occurs in getClazzOrSuper(String type)");
+					return type;
+				}
+			}
+		}
+		
+		return null;
+	}
+
+	/**
+	 * The second variable mapping strategy: only mapping class instances.
+	 * @param ft
+	 * @param suspVars
+	 * @param scan
+	 * @param superClazz
+	 * @param clazz
+	 * @return
+	 * @throws IOException
+	 */
+	private String variableMapping1(FixTemplate ft, List<ITree> suspVars, ITree scan, 
+				String superClazz, String clazz, String flag, 
+				int currentStartLineNo, int currentEndLineNo,
+				Map<String, String> clazzInstanceMap) throws IOException {
+		
+		int startPosScan = scan.getPos();
+		int endPosScan = startPosScan + scan.getLength();
+		String mappedCodeStr = ""; // code str after variable mapping.
+		int tmpStartPosScan = startPosScan;
+		
+		
+		
+		// modifiy ft.varTypesMap
+		Map<String, String> varNewTypesMap = new HashMap<>();
+		varNewTypesMap.putAll(ft.varTypesMap);
+		for(Map.Entry<String, String> entry : ft.varTypesMap.entrySet()){
+			String var = entry.getKey();
+			String type = entry.getValue();
+			if(SuspiciousCodeParser.isClass(type)){
+				if(clazzInstanceMap.containsKey(type)){ // already in map
+					varNewTypesMap.put(var, clazzInstanceMap.get(type));
+				}else{
+					// find its super class
+					String clazzOrSuper = getClazzOrSuper(type);
+					clazzInstanceMap.put(type, clazzOrSuper);
+					varNewTypesMap.put(var, clazzOrSuper);
+				}
+			}
+		}
+
+		for (ITree var : suspVars){
+			// init
+			String mappedVar = ""; // just for replace original varibale with mappedVar
+			int startPos = var.getPos();
+			int endPos =  startPos + var.getLength();
+
+			// simple check (if out of bound)
+			if (startPos < startPosScan || endPos > endPosScan){
+				writeStringToFile(extraLog, var.getLabel() + "is out of index! \n",true);
+				continue;
+			}
+
+			// code part 1
+			String codePart1 = ft.getSubSuspiciouCodeStr(tmpStartPosScan, startPos);
+			mappedCodeStr += codePart1; // first add unchanged code part.
+
+			String label = var.getLabel();
+			// bug fix: chart3: "Name:iteratoris not in ft.varTypesMap! "
+			if (label.contains(":")){
+				label = label.split(":")[1];
+			}
+
+			// code improve: more complicated var checking and var mapping.
+			if(label.contains(".")){ //if var is : this.var || var.length || varA.varB.length
+				// bug fix: change "." into "\\." when spliting
+				String[] subLabels = label.split("\\.");
+				for(String subLabel : subLabels){ // traverse subLabels
+					if(varNewTypesMap.containsKey(subLabel)){ //if in var-type map
+						String type = varNewTypesMap.get(subLabel);
+						//if in clazzIns map
+						// bug fix: 1)change containsKey into containsValue 2) change clazzInstanceMap.get(type) into type.
+						if(clazzInstanceMap.containsValue(type)){
+							mappedVar += type + "."; // map clazz instance into its class name or super class name 
+						}else{ // bug fix: add the else branch to avoid empty mappedVar (chart 2, similar code:/home/dale/d4j/Chart/Chart_2/source/org/jfree/chart/util/ArrayUtilities.java-184-184)
+							mappedVar += subLabel + ".";
+						}
+					}else{ // bug fix: add the rest
+						mappedVar +=  subLabel + ".";
+					}
+				}
+				int len = mappedVar.length();
+				if (len > 0){ // a simple check
+					mappedVar = mappedVar.substring(0,len-1);  // wipe out last additional "."
+				}else{
+					writeStringToFile(extraLog, "mappedVar is empty!", true);
+				}
+			}else{
+				mappedVar = label;
+			}
+			mappedCodeStr += mappedVar; // add mapped var
+			tmpStartPosScan = endPos; // change start pos. (because mapped code str already add varTypeMatched.
+		}
+		mappedCodeStr += ft.getSubSuspiciouCodeStr(tmpStartPosScan, endPosScan);// add last rest code str
+		
+		// replace this.
+		if (mappedCodeStr.contains("this.")){
+			if (superClazz != null ){
+				mappedCodeStr = mappedCodeStr.replace("this.", superClazz + ".");
+			}else if (clazz != null){
+				mappedCodeStr = mappedCodeStr.replace("this.", clazz + ".");
+			}else{
+				print("cannot find both class and super class.");
+			}
+		}
+		
+		// refactoring: set patchLinesMap values for fixed code snippets.
+		String[] lines = mappedCodeStr.split("\n");
+		int linesNo = lines.length;
+		int linesNo2 = currentEndLineNo - currentStartLineNo + 1;
+		if(flag == "fixed_code" && linesNo == linesNo2){
+			int cnt = 0;
+			for (int lineNo = currentStartLineNo; lineNo <= currentEndLineNo; lineNo ++){
+				if (patchLinesMap.containsKey(lineNo)){
+					Map<String, String> valueMap = patchLinesMap.get(lineNo); //get current valueMap
+					valueMap.put("1", lines[cnt].trim());
+					patchLinesMap.put(lineNo, valueMap); // refresh/update the valueMap
+				}
+				cnt ++;
+			}
 		}
 		
 		return mappedCodeStr;
