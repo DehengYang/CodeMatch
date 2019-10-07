@@ -78,13 +78,14 @@ public class Main {
 		int fixedStatus = fixer.fixedStatus;
 		switch (fixedStatus) {
 		case 0:
-			System.out.println("Failed to fix bug " + buggyProjectName);
+//			System.out.println("Failed to fix bug " + buggyProjectName);
+			System.out.println("Finish code matching for bug : " + buggyProjectName);
 			break;
 		case 1:
-			System.out.println("Succeeded to fix bug " + buggyProjectName);
+//			System.out.println("Succeeded to fix bug " + buggyProjectName);
 			break;
 		case 2:
-			System.out.println("Partial succeeded to fix bug " + buggyProjectName);
+//			System.out.println("Partial succeeded to fix bug " + buggyProjectName);
 			break;
 		}
 	}

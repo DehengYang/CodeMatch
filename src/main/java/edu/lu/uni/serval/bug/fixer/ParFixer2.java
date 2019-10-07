@@ -95,6 +95,8 @@ public class ParFixer2 extends AbstractFixer {
 	// code improve:
 	// private File bkupFolder;
 	private int parsedLinesCnt = 0;
+	private int logStartLine;
+	private int logEndLine;
 	
 	public ParFixer2(String path, String projectName, int bugId, String defects4jPath) {
 		super(path, projectName, bugId, defects4jPath);
@@ -160,13 +162,13 @@ public class ParFixer2 extends AbstractFixer {
 				// get patch lines
 				//e.g., lines_org.joda.time.Partial:218-218_fixed.log
 				String[] linesTmp = filePath.split(":")[1].split("_")[0].split("-");
-				int startLine = Integer.parseInt(linesTmp[0]);
-				int endLine = Integer.parseInt(linesTmp[1]);
+				this.logStartLine = Integer.parseInt(linesTmp[0]);
+				this.logEndLine = Integer.parseInt(linesTmp[1]);
 				String classPath = fileName.split("_")[1].split(":")[0];
 				
 				// init all relevant
 				initAll();
-				for (int lineNo = startLine; lineNo <= endLine; lineNo ++){
+				for (int lineNo = logStartLine; lineNo <= logEndLine; lineNo ++){
 					patchLinesMap.put(lineNo, new HashMap<String,String>()); // each patchLinesMap corresponds a "lines_xxx.log" file
 					modMap = FileOp.getFineGrainedModifications(classPath, lineNo, Configuration.proj, Configuration.id);
 					modMap0 = new HashMap<>(modMap);
@@ -181,7 +183,7 @@ public class ParFixer2 extends AbstractFixer {
 					continue;
 				}
 				
-				matchLinesFromEachFile(filePath, startLine, endLine);
+				matchLinesFromEachFile(filePath);
 			}
 			
 			// a simple check.
@@ -218,7 +220,7 @@ public class ParFixer2 extends AbstractFixer {
 		}
 	}
 
-	public void matchLinesFromEachFile(String filePath, int startLine, int endLine) throws IOException{
+	public void matchLinesFromEachFile(String filePath) throws IOException{
 		// read lines
 		@SuppressWarnings("resource")
 		BufferedReader br = new BufferedReader(new InputStreamReader(
@@ -227,6 +229,8 @@ public class ParFixer2 extends AbstractFixer {
 		
 		for (String line = br.readLine(); line != null; line = br.readLine()) {
 			// /home/dale/d4j/fixed_bugs_dir/Chart/Chart_3/source/org/jfree/data/time/TimeSeries
+			// e.g., line: fixed code:/home/dale/d4j/fixed_bugs_dir/Closure/Closure_2/
+			// src/com/google/javascript/jscomp/TypeCheck.java-1575-1575
 			line = line.trim();
 			String line1 = line.split(":")[1];
 			String[] lines = line1.split("\\.");
@@ -272,19 +276,30 @@ public class ParFixer2 extends AbstractFixer {
 			sc.classPath = classPath;
 			if(line.contains("fixed code:")){
 				// feature implementation: 
-				patchStartLineNo = this.startLineNo;
-				patchEndLineNo = this.endLineNo;
-				patchClassPath = classPath;
+				// bug fix:(closure 2) choose a larger <start, end> fixed code range
+				if(this.startLineNo >= this.logStartLine && this.endLineNo <= this.logEndLine){
+					patchStartLineNo = this.logStartLine;
+					patchEndLineNo = this.logEndLine;
+
+					// only for fixed code
+					this.startLineNo = this.logStartLine;
+					this.endLineNo = this.logEndLine;
+				}else{
+					patchStartLineNo = this.startLineNo;
+					patchEndLineNo = this.endLineNo;
+				}
 				
+				patchClassPath = classPath;
+
 				if (logPath == null){
 					// bug fix: file name.
 					logPath = "./match-log/" + Configuration.proj + '/' + Configuration.id + '/' 
-						+ classPath + "_" + startLine + "-" + endLine; 
+						+ classPath + "_" + logStartLine + "-" + logEndLine; 
 				}
 				if (matchedLogPath == null){
 					// bug fix: change logPath to matchedLogPath
 					matchedLogPath = "./match-log/" + Configuration.proj + '/' + Configuration.id + '/' 
-						+ classPath + "_" + startLine + "-" + endLine + "_matched.log"; 
+						+ classPath + "_" + logStartLine + "-" + logEndLine + "_matched.log"; 
 				}
 				
 				writeStringToFile(logPath, "fixed code: \n", true);
@@ -299,14 +314,14 @@ public class ParFixer2 extends AbstractFixer {
 				this.matchClassPath = classPath;
 				
 				// TODO:This can be actually deleted. 
-				if (logPath == null){
-					logPath = "./match-log/" + Configuration.proj + '/' + Configuration.id + '/' 
-						+ classPath + "_" + this.startLineNo + "-" + this.endLineNo; 
-				}
-				if (matchedLogPath == null){
-					matchedLogPath = "./match-log/" + Configuration.proj + '/' + Configuration.id + '/' 
-						+ classPath + "_" + this.startLineNo + "-" + this.endLineNo + "_matched.log"; 
-				}
+//				if (logPath == null){
+//					logPath = "./match-log/" + Configuration.proj + '/' + Configuration.id + '/' 
+//						+ classPath + "_" + this.startLineNo + "-" + this.endLineNo; 
+//				}
+//				if (matchedLogPath == null){
+//					matchedLogPath = "./match-log/" + Configuration.proj + '/' + Configuration.id + '/' 
+//						+ classPath + "_" + this.startLineNo + "-" + this.endLineNo + "_matched.log"; 
+//				}
 				
 				writeStringToFile(logPath, "similar code: \n", true);
 				runMatchSingleLine(sc, classPath, "sim_code");;
@@ -480,12 +495,17 @@ public class ParFixer2 extends AbstractFixer {
 					if (sim_lines.contains(fixLine) ){
 						equalFlag2 = 1;
 						break;
+					}else if(parseContainCheck(sim_lines, fixLine)){//TODO: an attempt
+						equalFlag2 = 1;
+						varMatchType += " <parseContainCheck> ";
+						break;
 					}else{ // if not directly contain fixLine. try modMap matching.
 						if(mapType.equals("ori")){ //origianl
+//							print("modMap.get(lineNo):" + modMap.get(lineNo).toString());
 							boolean match = matchFineGrained(modMap.get(lineNo), sim_lines);
 							if(match){
 								equalFlag2 = 1;
-								varMatchType = "ori-fine-grained";
+								varMatchType += " <ori-fine-grained> ";
 								break;
 							}
 						}
@@ -493,7 +513,7 @@ public class ParFixer2 extends AbstractFixer {
 							boolean match = matchFineGrained(modMap0.get(lineNo), sim_lines);
 							if(match){
 								equalFlag2 = 1;
-								varMatchType = "0-fine-grained";
+								varMatchType += " <0-fine-grained> ";
 								break;
 							}
 						}
@@ -501,7 +521,7 @@ public class ParFixer2 extends AbstractFixer {
 							boolean match = matchFineGrained(modMap1.get(lineNo), sim_lines);
 							if(match){
 								equalFlag2 = 1;
-								varMatchType = "1-fine-grained";
+								varMatchType += " <1-fine-grained> ";
 								break;
 							}
 						}else{
@@ -568,15 +588,44 @@ public class ParFixer2 extends AbstractFixer {
 		}
 	}
 
+	private boolean parseContainCheck(List<String> sim_lines, String fixLine) {
+		String fixLine_replace = fixLine.replaceAll("[^a-z^A-Z^0-9^!^=]", " ");
+		for(String sim_line : sim_lines){
+			String sim_line_replace = sim_line.replaceAll("[^a-z^A-Z^0-9^!^=]", " ");
+			
+			if(sim_line_replace.contains(fixLine_replace)){
+				writeStringToFile(extraLog, "parseContainCheck() macth: \n" 
+					+ "sim_line_replace: " + sim_line_replace +"\n"
+					+ "fixLine_replace : " + fixLine_replace +"\n");
+				return true;
+			}
+		}
+		
+		return false;
+	}
+
 	private boolean matchFineGrained(List<String> mods, List<String> sim_lines) {
+		// bug fix: NPE (time2)
+		if(mods == null){
+			return false;
+		}
+		
 		for(String line : sim_lines){ // traverse each line
 			int matchFlag = 1; // 0: not match 1:match
 			for (String mod : mods){
-				if(!line.contains(mod)) {
-					// if not contain any mod, break;
+				//bug fix: time1: consider the mods order.
+				int ind = line.indexOf(mod);
+				if(ind >= 0){ // if can be found
+					line = line.substring(ind + mod.length());
+				}else{ //else, fail to match
 					matchFlag = 0;
 					break;
 				}
+//				if(!line.contains(mod)) {
+//					// if not contain any mod, break;
+//					matchFlag = 0;
+//					break;
+//				}
 			}
 			
 			// check if the current line is matched
@@ -627,6 +676,19 @@ public class ParFixer2 extends AbstractFixer {
 			if (results.trim().equals("")){
 				results = "empty line";
 			}
+			
+			// bug fix: closure 2. add fixed_line that cannot be parsed!
+			if(flag.equals("fixed_code")){
+				for(String type : Arrays.asList("ori","0","1")){
+//					print("type:"+type);
+					if (patchLinesMap.containsKey(sc.lineNumber)){
+						Map<String, String> valueMap = patchLinesMap.get(sc.lineNumber); //get current valueMap
+						valueMap.put(type, results.trim());
+						patchLinesMap.put(sc.lineNumber, valueMap); // refresh/update the valueMap
+					}
+				}
+			}
+			
 			return new Pair<String, List<String>>(results, Arrays.asList(results,results));		
 		}
 		
@@ -955,8 +1017,6 @@ public class ParFixer2 extends AbstractFixer {
 		String mappedCodeStr = ""; // code str after variable mapping.
 		int tmpStartPosScan = startPosScan;
 		
-		
-		
 		// modifiy ft.varTypesMap
 		Map<String, String> varNewTypesMap = new HashMap<>();
 		varNewTypesMap.putAll(ft.varTypesMap);
@@ -1022,11 +1082,20 @@ public class ParFixer2 extends AbstractFixer {
 					if(varNewTypesMap.containsKey(subLabel)){ //if in var-type map
 						String type = varNewTypesMap.get(subLabel);
 						//if in clazzIns map
-						// bug fix: 1)change containsKey into containsValue 2) change clazzInstanceMap.get(type) into type.
+						// bug fix: 1)change containsKey into containsValue (as the type is already mapped)
+						//          2) change clazzInstanceMap.get(type) into type.
 						if(clazzInstanceMap.containsValue(type)){
 							mappedVar += type + "."; // map clazz instance into its class name or super class name 
 						}else{ // bug fix: add the else branch to avoid empty mappedVar (chart 2, similar code:/home/dale/d4j/Chart/Chart_2/source/org/jfree/chart/util/ArrayUtilities.java-184-184)
 							mappedVar += subLabel + ".";
+						}
+					}else if(varNewTypesMap.containsKey("this." + subLabel)){
+						// bug fix: time1: add this branch (learning from varmapping 0.
+						String type = varNewTypesMap.get("this." + subLabel);
+						if(clazzInstanceMap.containsValue(type)){
+							mappedVar += type + "."; // map clazz instance into its class name or super class name 
+						}else{ 
+							mappedVar += subLabel + ".";//do nothing
 						}
 					}else{ // bug fix: add the rest
 						mappedVar +=  subLabel + ".";
@@ -1039,7 +1108,26 @@ public class ParFixer2 extends AbstractFixer {
 					writeStringToFile(extraLog, "mappedVar is empty!", true);
 				}
 			}else{
-				mappedVar = label;
+				//bug fix:(time1) consider var (when it's a classIns)
+				if(varNewTypesMap.containsKey(label)){ //if in var-type map
+					String type = varNewTypesMap.get(label);
+					//if in clazzIns map
+					if(clazzInstanceMap.containsValue(type)){
+						mappedVar = clazzInstanceMap.get(type); // map clazz instance into its class name or super class name 
+					}else{
+						mappedVar = label;
+					}
+				}else if(varNewTypesMap.containsKey("this." + label)){
+					// bug fix: time1: add this branch (learning from varmapping 0.
+					String type = varNewTypesMap.get("this." + label);
+					if(clazzInstanceMap.containsValue(type)){
+						mappedVar = type; // map clazz instance into its class name or super class name 
+					}else{ 
+						mappedVar = label;//do nothing
+					}
+				}else{ // bug fix: add the rest
+					mappedVar =  label;
+				}
 			}
 			mappedCodeStr += mappedVar; // add mapped var
 			tmpStartPosScan = endPos; // change start pos. (because mapped code str already add varTypeMatched.
