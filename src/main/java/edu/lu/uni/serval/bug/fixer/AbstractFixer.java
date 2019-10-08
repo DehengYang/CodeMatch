@@ -201,9 +201,9 @@ public abstract class AbstractFixer implements IFixer {
 			return null;
 		}else{
 //			log.debug("Succeed to identify the buggy statement in: " + suspiciousClassName + " --- " + buggyLine);
-			writeStringToFile("./error.log", 
-					"Succeed to identify the buggy statement in: " + suspiciousClassName + " --- " + buggyLine + "\n"
-					,true);
+//			writeStringToFile("./error.log", 
+//					"Succeed to identify the buggy statement in: " + suspiciousClassName + " --- " + buggyLine + "\n"
+//					,true);
 		}
 //		log.debug("Suspicious Code: \n" + suspCodeStr);
 		
