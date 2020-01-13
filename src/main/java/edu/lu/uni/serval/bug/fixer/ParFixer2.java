@@ -644,7 +644,9 @@ public class ParFixer2 extends AbstractFixer {
 
 	private boolean parseContainCheck(List<String> sim_lines, String fixLine) {
 //		String matchPattern = "[^a-z^A-Z^0-9^!^=^-^+^<^>^*^/]";
-		String matchPattern = "[^a-z^A-Z^0-9^!^=^\\-^\\+^<^>^*^/]";
+//		String matchPattern = "[^a-z^A-Z^0-9^!^=^\\-^\\+^<^>^*^/]";
+		// code improve
+		String matchPattern = "[^a-z^A-Z^0-9^!^=^\\-^\\+^<^>^*^/^\\.^&^|^_]";
 		String fixLine_replace = fixLine.replaceAll(matchPattern, " ").replaceAll(" +", " ");// old-pattern:"[^a-z^A-Z^0-9^!^=]"
 		for(String sim_line : sim_lines){
 			String sim_line_replace = sim_line.replaceAll(matchPattern, " ").replaceAll(" +", " ");
@@ -662,14 +664,21 @@ public class ParFixer2 extends AbstractFixer {
 	
 	private boolean parseContainCheck2(List<String> sim_lines, String fixLine) {
 //		String matchPattern = "[^a-z^A-Z^0-9^!^=^-^+^<^>^*^/]";
-		String matchPattern = "[^a-z^A-Z^0-9^!^=^\\-^\\+^<^>^*^/^\\.^&^|]";
+		String matchPattern = "[^a-z^A-Z^0-9^!^=^\\-^\\+^<^>^*^/^\\.^&^|^_]";
 		String fixLine_replace = fixLine.replaceAll(matchPattern, " ").replaceAll(" +", " ");// old-pattern:"[^a-z^A-Z^0-9^!^=]"
 		String[] mods = fixLine_replace.split("\\s+");
 		
 		for(String sim_line : sim_lines){
 			String sim_line_replace = sim_line.replaceAll(matchPattern, " ").replaceAll(" +", " ");
+			List<String> sim_lists = Arrays.asList(sim_line_replace.split(" "));
 			int matchFlag = 1; // 0: not match 1:match
 			for (String mod : mods){
+				// bug fix: (math3)outside match
+				if(!sim_lists.contains(mod)){
+					matchFlag = 0;
+					break;
+				}
+				
 				//bug fix: time1: consider the mods order.
 				int ind = sim_line.indexOf(mod);
 				if(ind >= 0){ // if can be found
@@ -681,15 +690,19 @@ public class ParFixer2 extends AbstractFixer {
 			}
 			// check if the current line is matched
 			if (matchFlag == 1){
+				writeStringToFile(extraLog, "parseContainCheck2() macth: \n" 
+						+ "sim_line_replace: " + sim_line_replace +"\n"
+						+ "fixLine_replace : " + fixLine_replace +"\n");
 				return true;
 			}
 			
-			if(sim_line_replace.contains(fixLine_replace)){
-				writeStringToFile(extraLog, "parseContainCheck2() macth: \n" 
-					+ "sim_line_replace: " + sim_line_replace +"\n"
-					+ "fixLine_replace : " + fixLine_replace +"\n");
-				return true;
-			}
+			// bug fix: math3 outside match
+//			if(sim_line_replace.contains(fixLine_replace)){
+//				writeStringToFile(extraLog, "parseContainCheck2() macth: \n" 
+//					+ "sim_line_replace: " + sim_line_replace +"\n"
+//					+ "fixLine_replace : " + fixLine_replace +"\n");
+//				return true;
+//			}
 		}
 		
 		return false;
@@ -743,11 +756,20 @@ public class ParFixer2 extends AbstractFixer {
 	public Pair<String, List<String>> matchSingleLine(SuspiciousPosition sc, String flag, List<String> matchedFlags) throws IOException {
 		// count 
 		parsedLinesCnt ++;
-		String str = "Parsed Lines Count: " + parsedLinesCnt 
-				+ " : " + sc.classPath + ":" + sc.lineNumber 
-				+ "\nabsolutePath:" + dp.srcPath + sc.classPath.replace(".", "/") + ".java";
-		print(str);
-		writeStringToFile(extraLog, str + "\n", true);
+		// this is for debugging print.
+//		String str = "Parsed Lines Count: " + parsedLinesCnt 
+//				+ " : " + sc.classPath + ":" + sc.lineNumber 
+//				+ "\nabsolutePath:" + dp.srcPath + sc.classPath.replace(".", "/") + ".java";
+//		print(str);
+//		writeStringToFile(extraLog, str + "\n", true);
+		
+		// TODO: this judge branch can be moved before SuspCodeNode scn1 = parseSuspiciousCode(sc);
+		// 		which may save some time.
+		// (fix bug) if in matched. return "". else return "null_ast" str.
+		if (sc.lineNumber <= this.matchedEndLineNo &&
+				sc.lineNumber >= this.matchedStartLineNo){
+			return new Pair<String, List<String>>("", Arrays.asList("",""));
+		}
 		
 		// reset dp for each line.
 		this.dp.reset(this.dpPath, this.projId);
@@ -756,13 +778,6 @@ public class ParFixer2 extends AbstractFixer {
 		SuspCodeNode scn1 = parseSuspiciousCode(sc);
 		
 		if (scn1 == null){
-			// TODO: this judge branch can be moved before SuspCodeNode scn1 = parseSuspiciousCode(sc);
-			// 		which may save some time.
-			// (fix bug) if in matched. return "". else return "null_ast" str.
-			if (sc.lineNumber <= this.matchedEndLineNo &&
-					sc.lineNumber >= this.matchedStartLineNo){
-				return new Pair<String, List<String>>("", Arrays.asList("",""));
-			}
 			String javaFilePath = fullPath + ".java";
 			String results = ShellUtils.shellRunForFileRead(Arrays.asList(
 				"cat " + javaFilePath + " | sed -n " + sc.lineNumber + "p" ), buggyProject);
@@ -916,6 +931,8 @@ public class ParFixer2 extends AbstractFixer {
 				String superClazz, String clazz, String flag, 
 				int currentStartLineNo, int currentEndLineNo,
 				Map<String, String> clazzInstanceMap) throws IOException {
+		// code improve: add clazz and superClazz (chart3)
+		clazzInstanceMap.put(clazz, superClazz);			
 		
 		int startPosScan = scan.getPos();
 		int endPosScan = startPosScan + scan.getLength();
@@ -1057,7 +1074,7 @@ public class ParFixer2 extends AbstractFixer {
 		String result = ShellUtils.shellRun2(cmd);
 
 		// bug fix: closure89. there are two results when type is "IRFactory"
-		String[] results = result.split("\n");
+		String[] results = result.replace("\n","").split("\n");// bug fix: chart3 TimeSeries with \n
 		if(results.length > 1){
 			return type; // in this situation, return the type directly! TODO maybe there are better solutions in the future.
 		}

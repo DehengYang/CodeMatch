@@ -146,9 +146,9 @@ public class MatchTest extends TestCase{
 				"Ochiai",
 				"/home/dale/eclipse-projs/codesearch/search-log/" + proj.toLowerCase() + "/" + id};
 		
-		for (String arg : args){
-			System.out.println(arg);
-		}
+//		for (String arg : args){
+//			System.out.println(arg);
+//		}
 		
 		Main.main(args);
 		// the result can be found in /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/kPAR/match-log/Chart/3/org.jfree.chart.axis.DateAxis_767-778
@@ -255,6 +255,10 @@ public class MatchTest extends TestCase{
 	
 		// TODO: 2&1 java.lang.NullPointerException
 		
-		testProjId("Math","6");
+//		testProjId("Math","6");
+		
+//		testProjId("Chart","1");
+    	
+    	testProjId("Chart","3");
 	}
 }
