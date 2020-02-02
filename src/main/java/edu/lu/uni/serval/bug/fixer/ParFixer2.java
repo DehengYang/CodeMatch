@@ -270,7 +270,12 @@ public class ParFixer2 extends AbstractFixer {
 			String proj = projTemp[projTemp.length - 1];
 			this.projId = proj + "_" + id; // get proj_id
 			index = fullPath.indexOf(this.projId);
-			this.dpPath = "../CodeSearch/" + fullPath.substring(0, index);
+			
+			if (fullPath.contains("/home/")){
+				this.dpPath = fullPath.substring(0, index);
+			}else{
+				this.dpPath = "../CodeSearch/" + fullPath.substring(0, index);
+			}
 			
 			classPath = classPath.replace("/", ".");
 			sc.classPath = classPath;

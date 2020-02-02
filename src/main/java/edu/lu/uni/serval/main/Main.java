@@ -24,13 +24,13 @@ public class Main {
 //			System.exit(0);
 //		}
 		
-		Configuration.failedTestCasesFilePath = args[0]; // "./data/FailedTestCases/"
-		Configuration.suspPositionsFilePath = args[1];//"./FaultLocalization/GZoltar-0.1.1/SuspiciousCodePositions/"
-		String buggyProjectsPath = args[2];// "./Defecst4JBugs/Defects4JData/"
-		String defects4jPath = args[3]; // "~/environment/defects4j"  or "~/environment/defects4j/framework/bin/"
-		String projectName = args[4]; // "Lang_24"
+//		Configuration.failedTestCasesFilePath = args[0]; // "./data/FailedTestCases/"
+//		Configuration.suspPositionsFilePath = args[1];//"./FaultLocalization/GZoltar-0.1.1/SuspiciousCodePositions/"
+		String buggyProjectsPath = args[0];// "./Defecst4JBugs/Defects4JData/"
+		String defects4jPath = args[1]; // "~/environment/defects4j"  or "~/environment/defects4j/framework/bin/"
+		String projectName = args[2]; // "Lang_24"
 		Configuration.faultLocalizationMetric = "Ochiai"; // Ochiai
-		Configuration.linesFilePath = args[5]; ///home/dale/eclipse-projs/codesearch/search-log/chart/3
+		Configuration.linesFilePath = args[3]; ///home/dale/eclipse-projs/codesearch/search-log/chart/3
 		Configuration.outputPath += "FL/";
 		
 		Configuration.proj = projectName.split("_")[0];
