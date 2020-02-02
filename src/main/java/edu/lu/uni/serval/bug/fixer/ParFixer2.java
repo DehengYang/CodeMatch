@@ -193,7 +193,11 @@ public class ParFixer2 extends AbstractFixer {
 //			}
 		}
 		
-		
+		// TODO commented but useful.
+		File file = new File(extraLog); // e.g., ./match-log/Chart/3/extra-info.log
+		if (file.exists()){
+			file.delete();
+		}
 	}
 	
 	/**
@@ -1664,8 +1668,6 @@ public class ParFixer2 extends AbstractFixer {
 		return nodeTypes;
 	}
 	
-	
-	
 	private void init() {
 		// clear map
 		this.patchLinesMap.clear();
@@ -1682,7 +1684,7 @@ public class ParFixer2 extends AbstractFixer {
 		File file = new File(extraLog); // e.g., ./match-log/Chart/3/extra-info.log
 		if (file.exists()){
 			file.delete();
-			print(file.getName() + " exists, and now clear it at the beginning of the process.");
+//			print(file.getName() + " exists, and now clear it at the beginning of the process.");
 		}
 	}
 
