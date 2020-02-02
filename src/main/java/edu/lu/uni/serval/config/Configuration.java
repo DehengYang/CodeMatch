@@ -10,7 +10,7 @@ public class Configuration {
 
 	public static String knownBugPositions = "BugPositions.txt";  
 
-	// dale
+	// apr
 	public static String linesFilePath = "";
 	public static String proj = "";
 	public static String id = "";

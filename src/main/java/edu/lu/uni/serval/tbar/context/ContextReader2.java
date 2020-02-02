@@ -503,7 +503,7 @@ public class ContextReader2 {
 			int childType = child.getType();
 			if (Checker.isSimpleName(childType)) {
 //				int parentType = suspCodeAst.getType();
-				//FIXME dale
+				//FIXME apr
 //				if ((Checker.isAssignment(parentType) || Checker.isVariableDeclarationFragment(parentType))
 //						&& suspCodeAst.getChildPosition(child) == 0) {
 //					continue;
@@ -516,7 +516,7 @@ public class ContextReader2 {
 				else identifySuspiciousVariables(child, varTrees, allSuspVariables);
 			} else if (Checker.isQualifiedName(childType)) {
 //				int parentType = suspCodeAst.getType();
-				//FIXME dale
+				//FIXME apr
 //				if ((Checker.isAssignment(parentType) || Checker.isVariableDeclarationFragment(parentType))
 //						&& suspCodeAst.getChildPosition(child) == 0) {
 //					continue;
@@ -526,7 +526,7 @@ public class ContextReader2 {
 				if (!allSuspVariables.contains(qualifiedName)) allSuspVariables.add(qualifiedName);
 			} else if (Checker.isFieldAccess(childType) || Checker.isSuperFieldAccess(childType)) {
 //				int parentType = suspCodeAst.getType();
-				//FIXME dale
+				//FIXME apr
 //				if ((Checker.isAssignment(parentType) || Checker.isVariableDeclarationFragment(parentType))
 //						&& suspCodeAst.getChildPosition(child) == 0) {
 //					continue;

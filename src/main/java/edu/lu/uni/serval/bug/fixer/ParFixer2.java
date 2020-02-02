@@ -44,7 +44,7 @@ import edu.lu.uni.serval.utils.SuspiciousCodeParser;
 
 /**
  * This is to create a variable mapping/code matching version.
- * @author dale
+ * @author apr
  *
  */
 public class ParFixer2 extends AbstractFixer {
@@ -52,7 +52,7 @@ public class ParFixer2 extends AbstractFixer {
 	private static Logger log = LoggerFactory.getLogger(ParFixer2.class);
 	public static String extraLog = "./match-log/" + Configuration.proj + '/' + Configuration.id + "/extra-info.log";
 	
-	// dale
+	// apr
 	private static String logPath = null; // output path
 	private int startLineNo = 0; 
 	private int endLineNo = 0;
@@ -232,8 +232,8 @@ public class ParFixer2 extends AbstractFixer {
 		SuspiciousPosition sc = new SuspiciousPosition();
 		
 		for (String line = br.readLine(); line != null; line = br.readLine()) {
-			// /home/dale/d4j/fixed_bugs_dir/Chart/Chart_3/source/org/jfree/data/time/TimeSeries
-			// e.g., line: fixed code:/home/dale/d4j/fixed_bugs_dir/Closure/Closure_2/
+			// /home/apr/d4j/fixed_bugs_dir/Chart/Chart_3/source/org/jfree/data/time/TimeSeries
+			// e.g., line: fixed code:/home/apr/d4j/fixed_bugs_dir/Closure/Closure_2/
 			// src/com/google/javascript/jscomp/TypeCheck.java-1575-1575
 			line = line.trim();
 			String line1 = line.split(":")[1];
@@ -241,7 +241,7 @@ public class ParFixer2 extends AbstractFixer {
 			String fullPath = lines[0];
 			
 			// set full path. 
-			// e.g., /home/dale/d4j/fixed_bugs_dir/Chart/Chart_3/source/org/jfree/data/time/TimeSeries
+			// e.g., /home/apr/d4j/fixed_bugs_dir/Chart/Chart_3/source/org/jfree/data/time/TimeSeries
 			this.fullPath = fullPath;
 			
 			// java-1057-1058
@@ -267,7 +267,7 @@ public class ParFixer2 extends AbstractFixer {
 			}
 			
 			classPath = fullPath.substring(index);
-			// /home/dale/d4j/fixed_bugs_dir/Chart/Chart_3/src/xxx
+			// /home/apr/d4j/fixed_bugs_dir/Chart/Chart_3/src/xxx
 			// get projId
 			String id = fullPath.split("_")[ fullPath.split("_").length - 1 ].split("/")[0];
 			String[] projTemp = fullPath.split("_")[ fullPath.split("_").length - 2 ].split("/");
@@ -1079,7 +1079,7 @@ public class ParFixer2 extends AbstractFixer {
 		String[] cmd = {"/bin/sh","-c", " find " 
 				+ dp.srcPath + " -name " + type + ".java"
 		};
-		// e.g., find /home/dale/d4j/Chart/Chart_1/source/ -name AbstractCategoryItemRenderer.java
+		// e.g., find /home/apr/d4j/Chart/Chart_1/source/ -name AbstractCategoryItemRenderer.java
 		String result = ShellUtils.shellRun2(cmd);
 
 		// bug fix: closure89. there are two results when type is "IRFactory"
@@ -1215,7 +1215,7 @@ public class ParFixer2 extends AbstractFixer {
 						//          2) change clazzInstanceMap.get(type) into type.
 						if(clazzInstanceMap.containsValue(type)){
 							mappedVar += type + "."; // map clazz instance into its class name or super class name 
-						}else{ // bug fix: add the else branch to avoid empty mappedVar (chart 2, similar code:/home/dale/d4j/Chart/Chart_2/source/org/jfree/chart/util/ArrayUtilities.java-184-184)
+						}else{ // bug fix: add the else branch to avoid empty mappedVar (chart 2, similar code:/home/apr/d4j/Chart/Chart_2/source/org/jfree/chart/util/ArrayUtilities.java-184-184)
 							mappedVar += subLabel + ".";
 						}
 					}else if(varNewTypesMap.containsKey("this." + subLabel)){
@@ -1473,7 +1473,7 @@ public class ParFixer2 extends AbstractFixer {
 	@Override
 	public void fixProcess() {
 		// FIXME: this is a test code snippet
-		// dale test here
+		// apr test here
 		SuspiciousPosition sc = new SuspiciousPosition();
 		sc.classPath = "org.jfree.data.time.TimeSeries";
 		sc.lineNumber = 1057;

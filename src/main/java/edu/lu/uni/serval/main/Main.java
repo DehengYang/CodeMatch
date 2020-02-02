@@ -39,7 +39,7 @@ public class Main {
 		
 		String buggyProjectsPath = projDir;// "./Defecst4JBugs/Defects4JData/"
 		String projectName = proj + "_" + id; // "Lang_24"
-		Configuration.linesFilePath = searchDir; // /home/dale/eclipse-projs/codesearch/search-log/chart/3
+		Configuration.linesFilePath = searchDir; // /home/apr/eclipse-projs/codesearch/search-log/chart/3
 		Configuration.proj = proj;
 		Configuration.id = id;
 		System.out.println(projectName);

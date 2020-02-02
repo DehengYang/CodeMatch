@@ -46,8 +46,8 @@ public class MainTest extends TestCase{
     	
 		// old version
 //		String[] args = new String[]{
-//				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/",
-//				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/",
+//				"/home/apr/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/",
+//				"/home/apr/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/",
 //				repoFixed + proj + "/", 
 //				"~/env/defects4j/",
 //				projId,
@@ -61,7 +61,7 @@ public class MainTest extends TestCase{
 		};
 		
 		Main.main(args);
-		// the result can be found in /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/kPAR/match-log/Chart/3/org.jfree.chart.axis.DateAxis_767-778
+		// the result can be found in /home/apr/ALL_APR_TOOLS/FL-VS-APR-master/kPAR/match-log/Chart/3/org.jfree.chart.axis.DateAxis_767-778
 	}
 	
 	public void testProjIdOutSide(String proj, String id, String proj2) throws FileNotFoundException, IOException{
@@ -90,8 +90,8 @@ public class MainTest extends TestCase{
 //				+ proj + " " + id + " 1");
     	
 		String[] args = new String[]{
-//				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/",
-//				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/",
+//				"/home/apr/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/",
+//				"/home/apr/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/",
 				repoFixed + proj + "/", 
 				"~/env/defects4j/",
 				projId,
@@ -102,7 +102,7 @@ public class MainTest extends TestCase{
 		}
 		
 		Main.main(args);
-		// the result can be found in /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/kPAR/match-log/Chart/3/org.jfree.chart.axis.DateAxis_767-778
+		// the result can be found in /home/apr/ALL_APR_TOOLS/FL-VS-APR-master/kPAR/match-log/Chart/3/org.jfree.chart.axis.DateAxis_767-778
 	}
 	
 	@Test
@@ -136,7 +136,7 @@ public class MainTest extends TestCase{
 //		
 //		testProjId("Closure","2");
 		// find a bug: java.lang.NullPointerException at edu.lu.uni.serval.bug.fixer.ParFixer2.compareFixedAndSim(ParFixer2.java:455)
-		// 		this bug will be triggered when "lines_xxx:1575-1576_fixed.log" range > "fixed code:/home/dale/d4j/fixed_bugs_dir/xxx-1575-1575" range.
+		// 		this bug will be triggered when "lines_xxx:1575-1576_fixed.log" range > "fixed code:/home/apr/d4j/fixed_bugs_dir/xxx-1575-1575" range.
 		//      fix: when this happens, change <start_line, end_line> into the larger range
 		// code improve: the parseContainCheck() should consider "!=" etc..
 		// find a bug: ParFixer2 line712 results = results.trim();
@@ -161,7 +161,7 @@ public class MainTest extends TestCase{
 		// P.S. When I improve code for CodeSearch for Math_5, the Math_4 also gets many ingredients.
 		
 //		testProjId("Math","5");
-		// bug fix: /home/dale/d4j/fixed_bugs_dir/Math/Math_1/src/main/java/org/apache/commons/math3/optim/linear/Relationship.java
+		// bug fix: /home/apr/d4j/fixed_bugs_dir/Math/Math_1/src/main/java/org/apache/commons/math3/optim/linear/Relationship.java
 		// 			this is a enum, not a class. (error: NPE: private Pair<String, String> getClazzSuperMethod(ITree scan, String flag) {)
 	
 		// \DONE TODO: 2&1 java.lang.NullPointerException

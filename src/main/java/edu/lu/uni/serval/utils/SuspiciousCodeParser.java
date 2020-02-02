@@ -28,7 +28,7 @@ public class SuspiciousCodeParser {
 	
 	private BuggyMethod buggyMethod = null;
 	
-	// dale
+	// apr
 //	private List<ITree>clazzNameList = new ArrayList<ITree>();
 	// find only one clazzInstance each time
 	private ITree clazzInstance = null;
@@ -131,7 +131,7 @@ public class SuspiciousCodeParser {
 		}
 	}
 	
-	// dale from SimFix
+	// apr from SimFix
 	public static boolean isClass(String name){
 		if(name == null) return false;
 		
@@ -149,7 +149,7 @@ public class SuspiciousCodeParser {
 		return Character.isUpperCase(name.charAt(0)) && !name.toUpperCase().equals(name);
 	}
 	
-	// dale
+	// apr
 	public void findClazzInstance(ITree tree, FixTemplate ft) {
 		
 		List<ITree> children = tree.getChildren();

@@ -32,7 +32,7 @@ public abstract class FixTemplate implements IFixTemplate {
 	private List<Patch> patchesList = new ArrayList<>();
 	
 	// FIXME
-	// dale
+	// apr
 	public String sourceCodePath;
 	public Dictionary dic;
 	public Map<String, String> varTypesMap = new HashMap<>();

@@ -50,7 +50,7 @@ public class ParFixer extends AbstractFixer {
 	
 	private static Logger log = LoggerFactory.getLogger(ParFixer.class);
 	
-	// dale
+	// apr
 	private static String logPath = null;
 	private int startLineNo = 0;
 	private int endLineNo = 0;
@@ -155,14 +155,14 @@ public class ParFixer extends AbstractFixer {
 		SuspiciousPosition sc = new SuspiciousPosition();
 		
 		for (String line = br.readLine(); line != null; line = br.readLine()) {
-			// /home/dale/d4j/fixed_bugs_dir/Chart/Chart_3/source/org/jfree/data/time/TimeSeries
+			// /home/apr/d4j/fixed_bugs_dir/Chart/Chart_3/source/org/jfree/data/time/TimeSeries
 			line = line.trim();
 			String line1 = line.split(":")[1];
 			String[] lines = line1.split("\\.");
 			String fullPath = lines[0];
 			
 			// set full path. 
-			// e.g., /home/dale/d4j/fixed_bugs_dir/Chart/Chart_3/source/org/jfree/data/time/TimeSeries
+			// e.g., /home/apr/d4j/fixed_bugs_dir/Chart/Chart_3/source/org/jfree/data/time/TimeSeries
 			this.fullPath = fullPath;
 			
 			// java-1057-1058
@@ -188,7 +188,7 @@ public class ParFixer extends AbstractFixer {
 			}
 			
 			classPath = fullPath.substring(index);
-			// /home/dale/d4j/fixed_bugs_dir/Chart/Chart_3/src/xxx
+			// /home/apr/d4j/fixed_bugs_dir/Chart/Chart_3/src/xxx
 			// get projId
 			String id = fullPath.split("_")[ fullPath.split("_").length - 1 ].split("/")[0];
 			String[] projTemp = fullPath.split("_")[ fullPath.split("_").length - 2 ].split("/");
@@ -553,7 +553,7 @@ public class ParFixer extends AbstractFixer {
 //				String[] cmd2 = {"/bin/sh","-c", " find " 
 //						+ dp.srcPath + " -name " + replace + ".java"
 //						};
-//				// e.g., find /home/dale/d4j/Chart/Chart_1/source/ -name AbstractCategoryItemRenderer.java
+//				// e.g., find /home/apr/d4j/Chart/Chart_1/source/ -name AbstractCategoryItemRenderer.java
 //				String result = ShellUtils.shellRun2(cmd2);
 //				String otherClazz = scp.getSuperClazz(new File(result.trim()));
 //				if(otherClazz != null){
@@ -787,7 +787,7 @@ public class ParFixer extends AbstractFixer {
 	@Override
 	public void fixProcess() {
 		// FIXME: this is a test code snippet
-		// dale test here
+		// apr test here
 		SuspiciousPosition sc = new SuspiciousPosition();
 		sc.classPath = "org.jfree.data.time.TimeSeries";
 		sc.lineNumber = 1057;

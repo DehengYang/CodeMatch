@@ -20,13 +20,13 @@ import edu.lu.uni.serval.utils.FileHelper;
 
 public class ShellUtils {
 
-	// dale: simple run
+	// apr: simple run
 	public static String shellRun2(String cmd) throws IOException {
         Process process= Runtime.getRuntime().exec(cmd);
         String results = ShellUtils.getShellOut(process);
         return results;
 	}
-	// dale: simple run
+	// apr: simple run
 	public static String shellRun2(String[] cmd) throws IOException {
 		Process process= Runtime.getRuntime().exec(cmd);
 		String results = ShellUtils.getShellOut(process);
@@ -54,7 +54,7 @@ public class ShellUtils {
                 throw new IOException("Cannot Create bat file:" + fileName);
             }
         }else{
-        	// dale: delete original content. 
+        	// apr: delete original content. 
         	batFile.delete();
         }
         FileOutputStream outputStream = null;
