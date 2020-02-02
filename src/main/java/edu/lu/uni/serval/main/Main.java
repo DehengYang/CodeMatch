@@ -35,10 +35,11 @@ public class Main {
 		String proj = parameters.get("proj");
 		String id = parameters.get("id");
 		String projDir = parameters.get("projDir");
+		String searchDir = parameters.get("searchDir");
 		
 		String buggyProjectsPath = projDir;// "./Defecst4JBugs/Defects4JData/"
 		String projectName = proj + "_" + id; // "Lang_24"
-		Configuration.linesFilePath = args[2]; ///home/dale/eclipse-projs/codesearch/search-log/chart/3
+		Configuration.linesFilePath = searchDir; // /home/dale/eclipse-projs/codesearch/search-log/chart/3
 		Configuration.proj = proj;
 		Configuration.id = id;
 		System.out.println(projectName);
@@ -105,17 +106,20 @@ public class Main {
 		
 		Map<String, String> parameters = new HashMap<>();
 		
-        Option opt1 = new Option("proj","project_name",true,"e.g., ../d4j-repo/");
+        Option opt1 = new Option("proj","project_name",true,"e.g., Chart");
         opt1.setRequired(true);
-        Option opt2 = new Option("id","id",true,"e.g., Chart");
+        Option opt2 = new Option("id","id",true,"e.g., 3");
         opt2.setRequired(true);   
-        Option opt3 = new Option("projDir","buggy_src_path",true,"e.g., jfreechart");
+        Option opt3 = new Option("projDir","target_path",true,"e.g., ../CodeSearch/search-log/chart/3");
+        opt3.setRequired(true);
+        Option opt4 = new Option("searchDir","search_result_dir",true,"e.g., ./CodeSearch/d4j-repo/fixed_bugs_dir/Chart/");
         opt3.setRequired(true);
 
         Options options = new Options();
         options.addOption(opt1);
         options.addOption(opt2);
         options.addOption(opt3);
+        options.addOption(opt4);
 
         CommandLine cli = null;
         CommandLineParser cliParser = new DefaultParser();
@@ -136,6 +140,9 @@ public class Main {
         }
         if(cli.hasOption("projDir")){
         	parameters.put("projDir", cli.getOptionValue("projDir"));
+        }
+        if(cli.hasOption("searchDir")){
+        	parameters.put("searchDir", cli.getOptionValue("searchDir"));
         }
 		return parameters;
     }

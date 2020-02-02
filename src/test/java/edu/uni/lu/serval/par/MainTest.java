@@ -44,13 +44,21 @@ public class MainTest extends TestCase{
 			ShellUtils.shellRun2(cmd2);
 		}
     	
-		String[] args = new String[]{
+		// old version
+//		String[] args = new String[]{
 //				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/",
 //				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/",
-				repoFixed + proj + "/", 
+//				repoFixed + proj + "/", 
 //				"~/env/defects4j/",
-				projId,
-				"../CodeSearch/search-log/" + proj.toLowerCase() + "/" + id};
+//				projId,
+//				"../CodeSearch/search-log/" + proj.toLowerCase() + "/" + id};
+		
+		String[] args = new String[]{
+				"-proj", proj,
+				"-id", id,
+				"-projDir", repoFixed + proj + "/", 
+				"-searchDir", "../CodeSearch/search-log/" + proj.toLowerCase() + "/" + id
+		};
 		
 		Main.main(args);
 		// the result can be found in /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/kPAR/match-log/Chart/3/org.jfree.chart.axis.DateAxis_767-778

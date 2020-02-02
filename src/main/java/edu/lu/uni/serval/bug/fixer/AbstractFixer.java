@@ -85,7 +85,7 @@ public abstract class AbstractFixer implements IFixer {
 //			TestUtils.compileProjectWithDefects4j(path + buggyProject, defects4jPath);
 //			minErrorTest = TestUtils.getFailTestNumInProject(path + buggyProject, defects4jPath, failedTestStrList);
 //		}
-		log.info(buggyProject + " Failed Tests: " + this.minErrorTest);
+//		log.info(buggyProject + " Failed Tests: " + this.minErrorTest);
 		
 		// Read paths of the buggy project.
 		this.dp = new DataPreparer(path);
