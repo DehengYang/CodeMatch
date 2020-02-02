@@ -3,6 +3,17 @@ package edu.lu.uni.serval.main;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 
 import edu.lu.uni.serval.bug.fixer.AbstractFixer;
 import edu.lu.uni.serval.bug.fixer.ParFixer;
@@ -19,29 +30,25 @@ import edu.lu.uni.serval.utils.SuspiciousPosition;
 public class Main {
 	
 	public static void main(String[] args) throws FileNotFoundException, IOException {
-//		if (args.length != 7) {
-//			System.out.println("Arguments: <Failed_Test_Cases_File_Path> <Suspicious_Code_Positions_File_Path> <Buggy_Project_Path> <defects4j_Path> <Project_Name> <FL_Metric>");
-//			System.exit(0);
-//		}
+		// parse parameter.
+		Map<String, String> parameters = setParameters(args);
+		String proj = parameters.get("proj");
+		String id = parameters.get("id");
+		String projDir = parameters.get("projDir");
 		
-//		Configuration.failedTestCasesFilePath = args[0]; // "./data/FailedTestCases/"
-//		Configuration.suspPositionsFilePath = args[1];//"./FaultLocalization/GZoltar-0.1.1/SuspiciousCodePositions/"
-		String buggyProjectsPath = args[0];// "./Defecst4JBugs/Defects4JData/"
-		String defects4jPath = args[1]; // "~/environment/defects4j"  or "~/environment/defects4j/framework/bin/"
-		String projectName = args[2]; // "Lang_24"
+		String buggyProjectsPath = projDir;// "./Defecst4JBugs/Defects4JData/"
+		String projectName = proj + "_" + id; // "Lang_24"
+		Configuration.linesFilePath = args[2]; ///home/dale/eclipse-projs/codesearch/search-log/chart/3
+		Configuration.proj = proj;
+		Configuration.id = id;
+		System.out.println(projectName);
+
+		// not used now.
+		String defects4jPath = ""; // "~/environment/defects4j"  or "~/environment/defects4j/framework/bin/"
 		Configuration.faultLocalizationMetric = "Ochiai"; // Ochiai
-		Configuration.linesFilePath = args[3]; ///home/dale/eclipse-projs/codesearch/search-log/chart/3
 		Configuration.outputPath += "FL/";
 		
-		Configuration.proj = projectName.split("_")[0];
-		Configuration.id = projectName.split("_")[1];
-		System.out.println(projectName);
-		
-		// for parsing line node
-//		String classpath = 
-//		int lineNo = 
-//		SuspiciousPosition suspiciousCode = new SuspiciousPosition();
-		
+		// start match
 		fixBug(buggyProjectsPath, defects4jPath, projectName);
 	}
 
@@ -88,4 +95,48 @@ public class Main {
 		}
 	}
 
+	/*
+	 * receive parameters
+	 */
+	private static Map<String, String> setParameters(String[] args) {
+//		repoFixed + proj + "/", 
+//		projId,
+//		"../CodeSearch/search-log/" + proj.toLowerCase() + "/" + id};
+		
+		Map<String, String> parameters = new HashMap<>();
+		
+        Option opt1 = new Option("proj","project_name",true,"e.g., ../d4j-repo/");
+        opt1.setRequired(true);
+        Option opt2 = new Option("id","id",true,"e.g., Chart");
+        opt2.setRequired(true);   
+        Option opt3 = new Option("projDir","buggy_src_path",true,"e.g., jfreechart");
+        opt3.setRequired(true);
+
+        Options options = new Options();
+        options.addOption(opt1);
+        options.addOption(opt2);
+        options.addOption(opt3);
+
+        CommandLine cli = null;
+        CommandLineParser cliParser = new DefaultParser();
+        HelpFormatter helpFormatter = new HelpFormatter();
+
+        try {
+            cli = cliParser.parse(options, args);
+        } catch (org.apache.commons.cli.ParseException e) {
+            helpFormatter.printHelp(">>>>>> test cli options", options);
+            e.printStackTrace();
+        } 
+
+        if (cli.hasOption("proj")){
+        	parameters.put("proj", cli.getOptionValue("proj"));
+        }
+        if(cli.hasOption("id")){
+        	parameters.put("id", cli.getOptionValue("id"));
+        }
+        if(cli.hasOption("projDir")){
+        	parameters.put("projDir", cli.getOptionValue("projDir"));
+        }
+		return parameters;
+    }
 }

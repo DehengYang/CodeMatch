@@ -48,7 +48,7 @@ public class MainTest extends TestCase{
 //				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/",
 //				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/",
 				repoFixed + proj + "/", 
-				"~/env/defects4j/",
+//				"~/env/defects4j/",
 				projId,
 				"../CodeSearch/search-log/" + proj.toLowerCase() + "/" + id};
 		
