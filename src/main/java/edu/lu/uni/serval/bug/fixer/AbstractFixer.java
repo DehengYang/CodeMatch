@@ -196,9 +196,9 @@ public abstract class AbstractFixer implements IFixer {
 		String suspCodeStr = scp.getSuspiciousCodeStr();
 		if (suspCodeAstNode == null || suspCodeStr == null) {
 //			log.debug("Failed to identify the buggy statement in: " + suspiciousClassName + " --- " + buggyLine);
-			writeStringToFile("./error.log", 
-					"Failed to identify the buggy statement in: " + suspiciousClassName + " --- " + buggyLine + "\n"
-					,true);
+//			writeStringToFile("./error.log", 
+//					"Failed to identify the buggy statement in: " + suspiciousClassName + " --- " + buggyLine + "\n"
+//					,true);
 			return null;
 		}else{
 //			log.debug("Succeed to identify the buggy statement in: " + suspiciousClassName + " --- " + buggyLine);

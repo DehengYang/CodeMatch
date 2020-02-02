@@ -335,7 +335,7 @@ public class ParFixer extends AbstractFixer {
 				fixLine = fixLine.trim();
 				
 				if (!patchLinesMap.containsValue(fixLine)){
-					writeStringToFile("./error.log",fixLine + "\n", true);
+//					writeStringToFile("./error.log",fixLine + "\n", true);
 					continue;
 				}
 				
@@ -615,9 +615,9 @@ public class ParFixer extends AbstractFixer {
 		int linesNo = lines.length;
 		int linesNo2 = currentEndLineNo - currentStartLineNo + 1;
 		if (linesNo != linesNo2){
-			writeStringToFile("error.log", "linesNo != linesNo2 \n"
-					+ currentEndLineNo + " to " + currentStartLineNo
-					+ classPath + "\n\n",true);
+//			writeStringToFile("error.log", "linesNo != linesNo2 \n"
+//					+ currentEndLineNo + " to " + currentStartLineNo
+//					+ classPath + "\n\n",true);
 		}else if(flag != "fixed_code"){
 			// bug fix: add else if.
 			// do nothing
