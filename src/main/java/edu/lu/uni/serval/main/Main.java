@@ -19,20 +19,18 @@ import edu.lu.uni.serval.utils.SuspiciousPosition;
 public class Main {
 	
 	public static void main(String[] args) throws FileNotFoundException, IOException {
-		if (args.length != 7) {
-			System.out.println("Arguments: <Failed_Test_Cases_File_Path> <Suspicious_Code_Positions_File_Path> <Buggy_Project_Path> <defects4j_Path> <Project_Name> <FL_Metric>");
-			System.exit(0);
-		}
-		// /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/"
-//		/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/
-//		/home/dale/d4j/Lang ~/env/defects4j Lang_24 Ochiai
+//		if (args.length != 7) {
+//			System.out.println("Arguments: <Failed_Test_Cases_File_Path> <Suspicious_Code_Positions_File_Path> <Buggy_Project_Path> <defects4j_Path> <Project_Name> <FL_Metric>");
+//			System.exit(0);
+//		}
+		
 		Configuration.failedTestCasesFilePath = args[0]; // "./data/FailedTestCases/"
 		Configuration.suspPositionsFilePath = args[1];//"./FaultLocalization/GZoltar-0.1.1/SuspiciousCodePositions/"
 		String buggyProjectsPath = args[2];// "./Defecst4JBugs/Defects4JData/"
 		String defects4jPath = args[3]; // "~/environment/defects4j"  or "~/environment/defects4j/framework/bin/"
 		String projectName = args[4]; // "Lang_24"
-		Configuration.faultLocalizationMetric = args[5]; // Ochiai
-		Configuration.linesFilePath = args[6]; ///home/dale/eclipse-projs/codesearch/search-log/chart/3
+		Configuration.faultLocalizationMetric = "Ochiai"; // Ochiai
+		Configuration.linesFilePath = args[5]; ///home/dale/eclipse-projs/codesearch/search-log/chart/3
 		Configuration.outputPath += "FL/";
 		
 		Configuration.proj = projectName.split("_")[0];

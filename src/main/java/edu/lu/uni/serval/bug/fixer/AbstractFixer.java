@@ -91,7 +91,8 @@ public abstract class AbstractFixer implements IFixer {
 		this.dp = new DataPreparer(path);
 		dp.prepareData(buggyProject);
 		
-		readPreviouslyFailedTestCases();
+		// not used
+//		readPreviouslyFailedTestCases();
 	}
 
 	public AbstractFixer(String path, String metric, String projectName, int bugId, String defects4jPath) {

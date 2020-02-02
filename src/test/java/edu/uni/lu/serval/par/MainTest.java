@@ -1,5 +1,6 @@
 package edu.uni.lu.serval.par;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
@@ -13,142 +14,43 @@ import edu.lu.uni.serval.main.Main;
 import edu.lu.uni.serval.utils.ShellUtils;
 import junit.framework.TestCase;
 
-public class MatchTest extends TestCase{
+public class MainTest extends TestCase{
 	private Logger log = Logger.getLogger(this.getClass().getName());
 	
-	// /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/ 		/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/ 		/home/dale/d4j/fixed_bugs_dir/Chart/ ~/env/defects4j/        Chart_3   Ochiai /home/dale/eclipse-projs/codesearch/search-log/chart/3
-//	@Test
-//	public void test_chart3() throws FileNotFoundException, IOException{
-//		log.info("test chart 3.");
-//		
-//		String[] args = new String[]{
-//				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/",
-//				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/",
-//				"/home/dale/d4j/fixed_bugs_dir/Chart/", 
-//				"~/env/defects4j/",
-//				"Chart_3",
-//				"Ochiai",
-//				"./search-log-fortest/chart/3"};
-//		
-//		Main.main(args);
-//		// the result can be found in /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/kPAR/match-log/Chart/3/org.jfree.chart.axis.DateAxis_767-778
-//	}
-    
-//     /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/ 
-//    /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/
-//	/home/dale/d4j/fixed_bugs_dir/Time/ 	~/env/defects4j/ 	Time_2
-//	Ochiai 	./search-log-fortest/time/2
-//    @Test
-//	public void test_time2() throws FileNotFoundException, IOException{
-//		log.info("test math 2.");
-//		
-//		String[] args = new String[]{
-//				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/",
-//				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/",
-//				"/home/dale/d4j/fixed_bugs_dir/Time/", 
-//				"~/env/defects4j/",
-//				"Time_2",
-//				"Ochiai",
-//				"./search-log-fortest/time/2"};
-//		
-//		Main.main(args);
-//		// the result can be found in /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/kPAR/match-log/Chart/3/org.jfree.chart.axis.DateAxis_767-778
-//	}
-    
-//    @Test
-//	public void test_mock4() throws FileNotFoundException, IOException{
-//		log.info("run test_mock4.");
-//		
-//		String[] args = new String[]{
-//				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/",
-//				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/",
-//				"/home/dale/d4j/fixed_bugs_dir/Mockito/", 
-//				"~/env/defects4j/",
-//				"Mockito_4",
-//				"Ochiai",
-//				"./search-log-fortest/mockito/4"};
-//		
-//		Main.main(args);
-//		// the result can be found in /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/kPAR/match-log/Chart/3/org.jfree.chart.axis.DateAxis_767-778
-//	}
-	
-//	@Test
-//	public void test_chart1() throws FileNotFoundException, IOException{
-//		log.info("run test_chart1.");
-//		String proj = "Chart";
-//    	String id = "1";
-//    	String projId = proj + "_" + id;
-//		String[] args = new String[]{
-//				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/",
-//				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/",
-//				"/home/dale/d4j/fixed_bugs_dir/" + proj + "/", 
-//				"~/env/defects4j/",
-//				projId,
-//				"Ochiai",
-//				"/home/dale/eclipse-projs/codesearch/search-log/" + proj.toLowerCase() + "/" + id};
-//		
-//		for (String arg : args){
-//			System.out.println(arg);
-//		}
-//		
-//		Main.main(args);
-//		// the result can be found in /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/kPAR/match-log/Chart/3/org.jfree.chart.axis.DateAxis_767-778
-//	}
-	
-//	@Test
-//	public void test_chart2() throws FileNotFoundException, IOException{
-//		String proj = "Chart";
-//    	String id = "2";
-//    	String projId = proj + "_" + id;
-//		String[] args = new String[]{
-//				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/",
-//				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/",
-//				"/home/dale/d4j/fixed_bugs_dir/" + proj + "/", 
-//				"~/env/defects4j/",
-//				projId,
-//				"Ochiai",
-//				"/home/dale/eclipse-projs/codesearch/search-log/" + proj.toLowerCase() + "/" + id};
-//		
-//		for (String arg : args){
-//			System.out.println(arg);
-//		}
-//		
-//		Main.main(args);
-//		// the result can be found in /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/kPAR/match-log/Chart/3/org.jfree.chart.axis.DateAxis_767-778
-//	}
-
 	public void testProjId(String proj, String id) throws FileNotFoundException, IOException{
 //		String proj = "Chart";
 //    	String id = "10";
     	String projId = proj + "_" + id;
     	
-    	String repoBuggy = "/home/dale/d4j/";
-		String repoFixed = "/home/dale/d4j/fixed_bugs_dir/";
+    	String repoBuggy = "../CodeSearch/d4j-repo/";
+		String repoFixed = "../CodeSearch/d4j-repo/fixed_bugs_dir/";
 		String[] cmd = {"/bin/sh","-c", "cd " + repoBuggy 
 				+ " && " + "/bin/bash single-download.sh "
 				+ proj + " " + id + " 1"};
-		ShellUtils.shellRun2(cmd);
+		// if exist, do not download
+		if (new File(repoBuggy + proj + "/" + projId).exists()){
+			System.out.println(repoBuggy + proj + "/" + projId + " exists, so skip downloading.");
+		}else{
+			ShellUtils.shellRun2(cmd);
+		}
 		
 		String[] cmd2 = {"/bin/sh","-c", "cd " + repoFixed 
 				+ " && " + "/bin/bash  fixed_single_download.sh "
 				+ proj + " " + id + " 1"};
-		ShellUtils.shellRun2(cmd2);
-//		ShellUtils.shellRun2("cd " + repoFixed 
-//				+ " && " + "/bin/bash fixed_single_download.sh "
-//				+ proj + " " + id + " 1");
+		// if exist, do not download
+		if (new File(repoFixed + proj + "/" + projId).exists()){
+			System.out.println(repoFixed + proj + "/" + projId + " exists, so skip downloading.");
+		}else{
+			ShellUtils.shellRun2(cmd2);
+		}
     	
 		String[] args = new String[]{
 				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/",
 				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/",
-				"/home/dale/d4j/fixed_bugs_dir/" + proj + "/", 
+				repoFixed + proj + "/", 
 				"~/env/defects4j/",
 				projId,
-				"Ochiai",
-				"/home/dale/eclipse-projs/codesearch/search-log/" + proj.toLowerCase() + "/" + id};
-		
-//		for (String arg : args){
-//			System.out.println(arg);
-//		}
+				"../CodeSearch/search-log/" + proj.toLowerCase() + "/" + id};
 		
 		Main.main(args);
 		// the result can be found in /home/dale/ALL_APR_TOOLS/FL-VS-APR-master/kPAR/match-log/Chart/3/org.jfree.chart.axis.DateAxis_767-778
@@ -159,8 +61,8 @@ public class MatchTest extends TestCase{
 //    	String id = "10";
     	String projId = proj + "_" + id;
     	
-    	String repoBuggy = "/home/dale/d4j/";
-		String repoFixed = "/home/dale/d4j/fixed_bugs_dir/";
+    	String repoBuggy = "../CodeSearch/d4j-repo/";
+		String repoFixed = "../CodeSearch/d4j-repo/fixed_bugs_dir/";
 		String[] cmd = {"/bin/sh","-c", "cd " + repoBuggy 
 				+ " && " + "/bin/bash single-download.sh "
 				+ proj + " " + id + " 1"};
@@ -182,11 +84,10 @@ public class MatchTest extends TestCase{
 		String[] args = new String[]{
 				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/data/FailedTestCases/",
 				"/home/dale/ALL_APR_TOOLS/FL-VS-APR-master/FaultLocalization-pr/GZoltar-0.1.1/SuspiciousCodePositions/",
-				"/home/dale/d4j/fixed_bugs_dir/" + proj + "/", 
+				repoFixed + proj + "/", 
 				"~/env/defects4j/",
 				projId,
-				"Ochiai",
-				"/home/dale/eclipse-projs/codesearch/search-log/" + proj.toLowerCase() + "/" + id};
+				"../CodeSearch/search-log/" + proj.toLowerCase() + "/" + id};
 		
 		for (String arg : args){
 			System.out.println(arg);
@@ -198,6 +99,8 @@ public class MatchTest extends TestCase{
 	
 	@Test
     public void test() throws IOException{
+		testProjId("Chart","3");
+		
 		// a simple test.
 //		String matchPattern = "[^a-z^A-Z^0-9^!^=^\\-^\\+^<^>^*^/^\\.^&^|]";
 ////		String matchPattern = "[^a-z^A-Z^0-9^!^=^\\-^\\+^<^>^*^/]";
@@ -241,11 +144,11 @@ public class MatchTest extends TestCase{
 //		testProjId("Mockito","2");
 		
 //		testProjId("Mockito","4");
-		//code improve TODO: mockito 4 fixed lines are actually 424,434. but current recorded lines are 421, 431
+		//\DONE code improve TODO: mockito 4 fixed lines are actually 424,434. but current recorded lines are 421, 431
 		//					this may involve some complicated modifications on source code. So marked as todo here.
 		
 //		testProjId("Math","4");
-		// code improve TODO: there are actually some potential available fix ingredients(but their classes/datatype are not the same).
+		// \DONE code improve TODO: there are actually some potential available fix ingredients(but their classes/datatype are not the same).
 		// 					So I am not sure if the modification is needed. 
 		// P.S. When I improve code for CodeSearch for Math_5, the Math_4 also gets many ingredients.
 		
@@ -253,12 +156,10 @@ public class MatchTest extends TestCase{
 		// bug fix: /home/dale/d4j/fixed_bugs_dir/Math/Math_1/src/main/java/org/apache/commons/math3/optim/linear/Relationship.java
 		// 			this is a enum, not a class. (error: NPE: private Pair<String, String> getClazzSuperMethod(ITree scan, String flag) {)
 	
-		// TODO: 2&1 java.lang.NullPointerException
+		// \DONE TODO: 2&1 java.lang.NullPointerException
 		
 //		testProjId("Math","6");
 		
 //		testProjId("Chart","1");
-    	
-    	testProjId("Chart","3");
 	}
 }

@@ -9,8 +9,7 @@ package edu.lu.uni.serval.config;
 public class Configuration {
 
 	public static String knownBugPositions = "BugPositions.txt";  
-	//E:\研二下学期\自动修复研究\缺陷定位+软件自动修复\FL-VS-APR-master\data
-	
+
 	// dale
 	public static String linesFilePath = "";
 	public static String proj = "";

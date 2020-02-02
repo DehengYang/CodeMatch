@@ -176,7 +176,7 @@ public class ParFixer2 extends AbstractFixer {
 				}
 				
 				// exclude type1 lines
-				excludeTypeOneLines(patchLinesMap);
+				excludeIntrinsicLines(patchLinesMap);
 				
 				if(patchLinesMap.isEmpty()){
 					print("patchLinesMap is empty, continue for next patch chunk.");
@@ -200,7 +200,7 @@ public class ParFixer2 extends AbstractFixer {
 	 * exlcude type1 lines from pacthLinesMap
 	 * @param patchLinesMap2
 	 */
-	private void excludeTypeOneLines(Map<Integer, Map<String, String>> patchLinesMap2) {
+	private void excludeIntrinsicLines(Map<Integer, Map<String, String>> patchLinesMap2) {
 		File dir = new File(Configuration.linesFilePath);
 		// list all files in the dir, and select what we want.
 		File[] files = dir.listFiles(); 
@@ -208,11 +208,11 @@ public class ParFixer2 extends AbstractFixer {
 			String fileName = file.getName();
 			int len = fileName.length();
 			// e.g., org.jfree.chart.renderer.category.AbstractCategoryItemRenderer:1797_type1.log
-			if(len >= 10 && fileName.substring(len-10,len).equals("_type1.log")){
-				// get type1 lines
+			if(len >= 10 && fileName.substring(len-10,len).equals("_intrinsic.log")){
+				// get intrinsic lines
 				int line = Integer.parseInt( fileName.split(":")[1].split("_")[0] );
 
-				// exclude type1 lines now
+				// exclude intrinsic lines now
 				if (patchLinesMap2.containsKey(line)){
 					patchLinesMap2.remove(line);
 				}
@@ -1670,11 +1670,11 @@ public class ParFixer2 extends AbstractFixer {
 		if (dir.exists() && dir.isDirectory()) {
 			for (File file : dir.listFiles()){
 				file.delete();
-				print(file.getName() + " exists, and now clear it at the beginning of the process.");
+				print(file.getName() + " exists, and now clear it.");
 			}
 		}
 		
-		File file = new File(extraLog);
+		File file = new File(extraLog); // e.g., ./match-log/Chart/3/extra-info.log
 		if (file.exists()){
 			file.delete();
 			print(file.getName() + " exists, and now clear it at the beginning of the process.");
